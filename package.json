@@ -1,0 +1,15 @@
+{
+  "name": "jest-when",
+  "version": "1.0.0",
+  "description": "A when(fn).calledWith(args).thenReturn(value) lib for jest",
+  "main": "index.js",
+  "author": "Tim Kindberg",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^22.1.1"
+  }
+}
