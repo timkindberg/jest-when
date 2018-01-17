@@ -1,52 +1,60 @@
 import { equals } from 'expect/build/jasmine_utils';
-// import expect from 'expect';
 
 export class WhenMock {
   constructor(fn) {
     this.fn = fn;
+    this.callMocks = [];
     this.debug = false;
     this.log = (...args) => this.debug && console.log(...args);
   }
 
   calledWith(...matchers) {
     this.log('calledWith', matchers);
-    this.matchers = matchers;
-    return this;
-  }
 
-  mockReturnValue(val) {
-    this.log('mockReturn', val);
-    this.fn.mockImplementation((...args) => {
-      this.log('mocked impl', args);
+    return {
+      mockReturnValue: (val, assertCall=false) => {
+        this.callMocks.push({ matchers, val, assertCall });
 
-      const match = this.matchers.reduce((match, matcher, i) => {
-        this.log(`matcher check, match: ${match}, index: ${i}`);
+        this.fn.mockImplementation((...args) => {
+          this.log('mocked impl', args);
 
-        // Propagate failure to the end
-        if (!match) {
-          return false;
-        }
+          for (let i = 0; i < this.callMocks.length; i++) {
+            const { matchers, val, assertCall } = this.callMocks[i];
+            const match = matchers.reduce((match, matcher, i) => {
+              this.log(`matcher check, match: ${match}, index: ${i}`);
 
-        const arg = args[i];
+              // Propagate failure to the end
+              if (!match) {
+                return false;
+              }
 
-        this.log(`   matcher: ${matcher}`);
-        this.log(`   arg: ${arg}`);
+              const arg = args[i];
 
-        // Assert the match for better messaging during a failure
-        expect(arg).toEqual(matcher);
+              this.log(`   matcher: ${matcher}`);
+              this.log(`   arg: ${arg}`);
 
-        return equals(arg, matcher);
-      }, true);
+              // Assert the match for better messaging during a failure
+              if (assertCall) {
+                expect(arg).toEqual(matcher);
+              }
 
-      if (match) {
-        return val;
+              return equals(arg, matcher);
+            }, true);
+
+            if (match) {
+              return val;
+            }
+          }
+        });
       }
-    });
+    };
   }
 }
 
 const when = (fn) => {
-  return new WhenMock(fn);
+  if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__;
+  fn.__whenMock__ = new WhenMock(fn);
+  return fn.__whenMock__;
 };
 
 export default when;

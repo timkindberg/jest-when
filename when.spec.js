@@ -1,226 +1,87 @@
 import when, { WhenMock } from './when';
-import mockExpect from 'expect';
-
-// jest.mock('expect', () => (arg) => ({
-//   toEqual: jest.fn()
-// }));
+import * as utils from 'expect/build/jasmine_utils';
 
 const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*\\n.*${expect}.*\\nReceived.*\\n.*${actual}`);
 
 describe('When', () => {
   describe('when', () => {
-    it('returns a WhenMock with ', () => {
+    it('returns a WhenMock', () => {
       const fn = jest.fn();
       const whenFn = when(fn);
 
       expect(whenFn).toBeInstanceOf(WhenMock);
       expect(whenFn.fn).toBe(fn);
     });
+
+    it('returns existing WhenMock if fn was already whenified', () => {
+      const fn = jest.fn();
+      const whenFn1 = when(fn);
+      const whenFn2 = when(fn);
+
+      expect(whenFn1).toBeInstanceOf(WhenMock);
+      expect(whenFn2).toBeInstanceOf(WhenMock);
+      expect(whenFn1).toBe(whenFn2);
+    });
   });
 
-  describe('usage regular args', () => {
-    let fn1, fn2;
+  describe('mock implementation', () => {
+    it('offloads equality check to jasmine equals helper', () => {
+      const fn = jest.fn();
 
-    beforeEach(() => {
-      fn1 = jest.fn();
-      fn2 = jest.fn();
+      jest.spyOn(utils, 'equals');
+
+      when(fn).calledWith(1).mockReturnValue('x');
+
+      expect(fn(1)).toEqual('x');
+      expect(utils.equals).toBeCalledWith(1, 1);
+
+      expect(fn(2)).toEqual(undefined);
+      expect(utils.equals).toBeCalledWith(2, 1);
     });
 
-    it('allows mocking a number', () => {
-      when(fn1).calledWith(1).mockReturnValue('x');
+    it('works with multiple args', () => {
+      const fn = jest.fn();
 
-      expect(fn1(1)).toEqual('x');
-      expect(() => fn1(9)).toThrow(errMsg({
-        expect: 1,
-        actual: 9
-      }));
-    });
+      jest.spyOn(utils, 'equals');
 
-    it('allows mocking a string', () => {
-      when(fn1).calledWith('foo').mockReturnValue('x');
+      const anyString = expect.any(String);
 
-      expect(fn1('foo')).toEqual('x');
-      expect(() => fn1('bar')).toThrow(errMsg({
-        expect: 'foo',
-        actual: 'bar'
-      }));
-    });
-
-    it('allows mocking a boolean', () => {
-      when(fn1).calledWith(true).mockReturnValue('x');
-
-      expect(fn1(true)).toEqual('x');
-      expect(() => fn1(false)).toThrow(errMsg({
-        expect: true,
-        actual: false
-      }));
-
-      when(fn2).calledWith(false).mockReturnValue('y');
-
-      expect(fn2(false)).toEqual('y');
-      expect(() => fn2(true)).toThrow(errMsg({
-        expect: false,
-        actual: true
-      }));
-    });
-
-    it('allows mocking a Date', () => {
-      when(fn1).calledWith(new Date('1995-12-17T03:24:00'))
+      when(fn)
+        .calledWith(1, 'foo', true, anyString, undefined)
         .mockReturnValue('x');
 
-      expect(fn1(new Date('1995-12-17T03:24:00'))).toEqual('x');
-      expect(() => fn1(new Date('2010-01-01T03:24:00'))).toThrow(errMsg({
-        expect: '1995-12-17T08:24:00.000Z',
-        actual: '2010-01-01T08:24:00.000Z'
-      }));
-
+      expect(fn(1, 'foo', true, 'whatever')).toEqual('x');
+      expect(utils.equals).toBeCalledWith(1, 1);
+      expect(utils.equals).toBeCalledWith('foo', 'foo');
+      expect(utils.equals).toBeCalledWith(true, true);
+      expect(utils.equals).toBeCalledWith('whatever', anyString);
+      expect(utils.equals).toBeCalledWith(undefined, undefined);
     });
 
-    it('allows mocking a Regexp', () => {
-      when(fn1).calledWith(/abc/mi).mockReturnValue('x');
+    it('supports compound when declarations', () => {
+      const fn = jest.fn();
 
-      expect(fn1(/abc/mi)).toEqual('x');
-      expect(() => fn1(/xyz/g)).toThrow(errMsg({
-        expect: '/abc/im',
-        actual: '/xyz/g'
-      }));
+      jest.spyOn(utils, 'equals');
+
+      when(fn).calledWith(1).mockReturnValue('x');
+      when(fn).calledWith('foo', 'bar').mockReturnValue('y');
+      when(fn).calledWith(false, /asdf/g).mockReturnValue('z');
+
+      expect(fn(1)).toEqual('x');
+      expect(fn('foo', 'bar')).toEqual('y');
+      expect(fn(false, /asdf/g)).toEqual('z');
     });
 
-    it('allows mocking null', () => {
-      when(fn1).calledWith(null).mockReturnValue('x');
+    it('assertCall true: fails a test with error messaging if argument does not match', () => {
+      const fn1 = jest.fn();
+      const fn2 = jest.fn();
 
-      expect(fn1(null)).toEqual('x');
-      expect(() => fn1(0)).toThrow(errMsg({
-        expect: null,
-        actual: 0
-      }));
-    });
+      when(fn1).calledWith(1).mockReturnValue('x', true);
+      when(fn2).calledWith('foo').mockReturnValue('y');
 
-    it('allows mocking undefined', () => {
-      when(fn1).calledWith(undefined).mockReturnValue('x');
-
-      expect(fn1()).toEqual('x');
-      expect(fn1(undefined)).toEqual('x');
-      expect(() => fn1(0)).toThrow(errMsg({
-        expect: undefined,
-        actual: 0
-      }));
-    });
-
-    it('allows mocking objects', () => {
-      when(fn1).calledWith({ foo: 'true' }).mockReturnValue('x');
-
-      expect(fn1({ foo: 'true' })).toEqual('x');
-      expect(() => fn1({ foo: 'false' })).toThrow(errMsg({
-        expect: '{"foo": "true"}',
-        actual: '{"foo": "false"}'
-      }));
-      expect(() => fn1({ foo: 'true', bar: 'true' })).toThrow(errMsg({
-        expect: '{"foo": "true"}',
-        actual: '{"bar": "true", "foo": "true"}'
-      }));
-      expect(() => fn1({ bar: 'true' })).toThrow(errMsg({
-        expect: '{"foo": "true"}',
-        actual: '{"bar": "true"}'
-      }));
-    });
-
-    it('allows mocking array', () => {
-      when(fn1).calledWith(['foo', true, 4, { foo: 'bar' }]).mockReturnValue('x');
-
-      expect(fn1(['foo', true, 4, { foo: 'bar' }])).toEqual('x');
-      expect(() => fn1([5, false])).toThrow(errMsg({
-        expect: '["foo", true, 4, {"foo": "bar"}]',
-        actual: '[5, false]'
-      }));
-      expect(() => fn1(['foo', true, 4, { foo: 'baz' }])).toThrow(errMsg({
-        expect: '["foo", true, 4, {"foo": "bar"}]',
-        actual: '["foo", true, 4, {"foo": "baz"}]'
-      }));
+      expect(() => fn1(2)).toThrow(errMsg({ expect: 1, actual: 2 }));
+      expect(() => fn2('bar')).not.toThrow();
     });
   });
-
-  describe('usage asymmetric matchers', () => {
-    let fn1, fn2;
-
-    beforeEach(() => {
-      fn1 = jest.fn();
-      fn2 = jest.fn();
-    });
-
-    it('allows mocking with expect.anything', () => {
-      when(fn1).calledWith(expect.anything()).mockReturnValue('x');
-
-      expect(fn1(1)).toEqual('x');
-      expect(fn1('foo')).toEqual('x');
-      expect(fn1(true)).toEqual('x');
-      expect(fn1(false)).toEqual('x');
-      expect(fn1({})).toEqual('x');
-      expect(fn1([])).toEqual('x');
-      expect(fn1('')).toEqual('x');
-      expect(fn1(new Date())).toEqual('x');
-      expect(fn1(/abc/)).toEqual('x');
-      expect(() => fn1(null)).toThrow(errMsg({
-        expect: 'Anything',
-        actual: 'null'
-      }));
-      expect(() => fn1(undefined)).toThrow(errMsg({
-        expect: 'Anything',
-        actual: 'undefined'
-      }));
-      expect(() => fn1()).toThrow(errMsg({
-        expect: 'Anything',
-        actual: 'undefined'
-      }));
-    });
-
-    it('allows mocking with expect.any()', () => {
-      when(fn1).calledWith(expect.any(Number)).mockReturnValue('x');
-
-      expect(fn1(1)).toEqual('x');
-      expect(fn1(9999)).toEqual('x');
-      expect(fn1(42.23452345)).toEqual('x');
-      expect(() => fn1('23')).toThrow(errMsg({
-        expect: 'Any<Number>',
-        actual: '"23"'
-      }));
-
-      when(fn2).calledWith(expect.any(String)).mockReturnValue('x');
-
-      expect(fn2('foo')).toEqual('x');
-      expect(fn2('barbazquux')).toEqual('x');
-      expect(fn2(`hello
-      asdfasdf
-      asdfasdf`)).toEqual('x');
-      expect(() => fn2(42)).toThrow(errMsg({
-        expect: 'Any<String>',
-        actual: '42'
-      }));
-    });
-
-    it('allows mocking with expect.arrayContainer()', () => {
-      when(fn1).calledWith(expect.any(Number)).mockReturnValue('x');
-
-      expect(fn1(1)).toEqual('x');
-      expect(fn1(9999)).toEqual('x');
-      expect(fn1(42.23452345)).toEqual('x');
-      expect(() => fn1('23')).toThrow(errMsg({
-        expect: 'Any<Number>',
-        actual: '"23"'
-      }));
-
-      when(fn2).calledWith(expect.any(String)).mockReturnValue('x');
-
-      expect(fn2('foo')).toEqual('x');
-      expect(fn2('barbazquux')).toEqual('x');
-      expect(fn2(`hello
-      asdfasdf
-      asdfasdf`)).toEqual('x');
-      expect(() => fn2(42)).toThrow(errMsg({
-        expect: 'Any<String>',
-        actual: '42'
-      }));
-    });
-  })
 });
