@@ -2,15 +2,20 @@
   "name": "jest-when",
   "version": "1.0.0",
   "description": "A when(fn).calledWith(args).thenReturn(value) lib for jest",
-  "main": "when.js",
+  "main": "dist/when.js",
+  "files": [
+    "dist/when.js"
+  ],
   "author": "Tim Kindberg",
   "license": "MIT",
   "private": false,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "rm -rf dist && mkdir dist && babel when.js --out-file dist/when.js"
   },
   "dependencies": {},
   "devDependencies": {
+    "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-jest": "^22.1.0",
     "babel-preset-es2015": "^6.24.1",
