@@ -1,6 +1,7 @@
-import { equals } from 'jasmine_utils';
+import { equals } from 'expect/build/jasmine_utils';
+// import expect from 'expect';
 
-class WhenMock {
+export class WhenMock {
   constructor(fn) {
     this.fn = fn;
     this.debug = false;
@@ -13,7 +14,7 @@ class WhenMock {
     return this;
   }
 
-  mockReturn(val) {
+  mockReturnValue(val) {
     this.log('mockReturn', val);
     this.fn.mockImplementation((...args) => {
       this.log('mocked impl', args);
@@ -34,13 +35,7 @@ class WhenMock {
         // Assert the match for better messaging during a failure
         expect(arg).toEqual(matcher);
 
-        // Test for special matchers first (e.g. expect.any(Number))
-        if (matcher.asymmetricMatch) {
-          return matcher.asymmetricMatch(arg);
-        }
-
-        // Test for value matcher
-        return matcher === arg;
+        return equals(arg, matcher);
       }, true);
 
       if (match) {
@@ -54,4 +49,4 @@ const when = (fn) => {
   return new WhenMock(fn);
 };
 
-module.exports = when;
+export default when;
