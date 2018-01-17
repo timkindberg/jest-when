@@ -1,12 +1,16 @@
 {
   "name": "jest-when",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A when(fn).calledWith(args).thenReturn(value) lib for jest",
   "main": "dist/when.js",
   "files": [
     "dist/when.js"
   ],
   "author": "Tim Kindberg",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/timkindberg/jest-when.git"
+  },
   "license": "MIT",
   "private": false,
   "scripts": {
