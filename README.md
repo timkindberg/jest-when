@@ -70,3 +70,4 @@ when(fn).calledWith(1).mockReturnValue('x');
 
 fn(2); // Will throw a helpful jest assertion error with diff
 ```
+
