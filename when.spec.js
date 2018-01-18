@@ -1,4 +1,4 @@
-import when, { WhenMock } from './when';
+import { when, WhenMock } from './when';
 import * as utils from 'expect/build/jasmine_utils';
 
 const errMsg = ({ expect, actual }) =>
@@ -73,11 +73,11 @@ describe('When', () => {
       expect(fn(false, /asdf/g)).toEqual('z');
     });
 
-    it('assertCall true: fails a test with error messaging if argument does not match', () => {
+    it('expectCalledWith: fails a test with error messaging if argument does not match', () => {
       const fn1 = jest.fn();
       const fn2 = jest.fn();
 
-      when(fn1).calledWith(1).mockReturnValue('x', true);
+      when(fn1).expectCalledWith(1).mockReturnValue('x');
       when(fn2).calledWith('foo').mockReturnValue('y');
 
       expect(() => fn1(2)).toThrow(errMsg({ expect: 1, actual: 2 }));

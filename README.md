@@ -7,7 +7,7 @@ A sugary way to mock return values for specific arguments only.
 
 #### Basic usage:
 ```javascript
-import when from 'jest-when';
+import { when } from 'jest-when';
 
 const fn = jest.fn();
 when(fn).calledWith(1).mockReturnValue('yay!');
@@ -18,7 +18,7 @@ expect(result).toEqual('yay!');
 
 #### Supports multiple args:
 ```javascript
-import when from 'jest-when';
+import { when } from 'jest-when';
 
 const fn = jest.fn();
 when(fn).calledWith(1, true, 'foo').mockReturnValue('yay!');
@@ -29,7 +29,7 @@ expect(result).toEqual('yay!');
 
 #### Supports jest matchers:
 ```javascript
-import when from 'jest-when';
+import { when } from 'jest-when';
 
 const fn = jest.fn();
 when(fn).calledWith(
@@ -44,7 +44,7 @@ expect(result).toEqual('yay!');
 
 #### Supports compound declarations:
 ```javascript
-import when from 'jest-when';
+import { when } from 'jest-when';
 
 const fn = jest.fn();
 when(fn).calledWith(1).mockReturnValue('no');
@@ -59,15 +59,17 @@ expect(fn(4)).toEqual('way!');
 expect(fn(5)).toEqual(undefined);
 ```
 
-#### Assert args for debugging:
+#### Assert the args:
 
-Just pass `true` as second param to `.mockReturnValue(value, true)`. After that your test will fail if the jest mock function is ever called without those exact `calledWith` params.
+Use `expectCalledWith` instead to run an assertion that the `fn` was called with the provided args. Your test will fail if the jest mock function is ever called without those exact `expectCalledWith` params.
+
+Disclaimer: This won't really work very well with compound declarations, because one of them will always fail, and throw an assertion error.
 ```javascript
-import when from 'jest-when';
+import { when } from 'jest-when';
 
 const fn = jest.fn();
-when(fn).calledWith(1).mockReturnValue('x');
+when(fn).expectCalledWith(1).mockReturnValue('x');
 
-fn(2); // Will throw a helpful jest assertion error with diff
+fn(2); // Will throw a helpful jest assertion error with args diff
 ```
 
