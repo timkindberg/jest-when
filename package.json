@@ -1,6 +1,6 @@
 {
   "name": "jest-when",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "A when(fn).calledWith(args).thenReturn(value) lib for jest",
   "main": "dist/when.js",
   "files": [
