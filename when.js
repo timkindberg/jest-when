@@ -46,6 +46,8 @@ export class WhenMock {
           }
         }
       });
+
+      return this;
     };
 
     this.calledWith = (...matchers) => ({ mockReturnValue: mockReturnValue(matchers, false) });

@@ -73,6 +73,25 @@ describe('When', () => {
       expect(fn(false, /asdf/g)).toEqual('z');
     });
 
+    it('supports chaining of when declarations', () => {
+      const fn = jest.fn();
+
+      const result = when(fn)
+        .calledWith(1)
+        .mockReturnValue('x');
+
+      expect(result).toBeInstanceOf(WhenMock);
+
+      when(fn).calledWith('foo', 'bar')
+        .mockReturnValue('y')
+        .calledWith(false, /asdf/g)
+        .mockReturnValue('z');
+
+      expect(fn(1)).toEqual('x');
+      expect(fn('foo', 'bar')).toEqual('y');
+      expect(fn(false, /asdf/g)).toEqual('z');
+    });
+
     it('supports replacement of when declarations', () => {
       const fn = jest.fn();
 
