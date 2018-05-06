@@ -73,6 +73,16 @@ describe('When', () => {
       expect(fn(false, /asdf/g)).toEqual('z');
     });
 
+    it('supports replacement of when declarations', () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith('foo', 'bar').mockReturnValue('x');
+      when(fn).calledWith(false, /asdf/g).mockReturnValue('y');
+      when(fn).calledWith('foo', 'bar').mockReturnValue('z');
+
+      expect(fn('foo', 'bar')).toEqual('z');
+    });
+
     it('expectCalledWith: fails a test with error messaging if argument does not match', () => {
       const fn1 = jest.fn();
       const fn2 = jest.fn();

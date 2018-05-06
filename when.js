@@ -8,6 +8,11 @@ export class WhenMock {
     this.log = (...args) => this.debug && console.log(...args);
 
     const mockReturnValue = (matchers, assertCall) => (val) => {
+      // Remove call mocks with equal matchers to enable dynamic remplacement during a test
+      this.callMocks = this.callMocks.filter((callMock) => {
+        return !equals(callMock.matchers, matchers);
+      });
+
       this.callMocks.push({ matchers, val, assertCall });
 
       this.fn.mockImplementation((...args) => {
