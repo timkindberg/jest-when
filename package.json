@@ -8,24 +8,38 @@
   ],
   "author": "Tim Kindberg",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/timkindberg/jest-when.git"
+    "type": "git",
+    "url": "https://github.com/timkindberg/jest-when.git"
   },
   "license": "MIT",
   "private": false,
   "scripts": {
-    "test": "jest",
-    "build": "rm -rf dist && mkdir dist && babel when.js --out-file dist/when.js"
+    "test": "jest --coverage",
+    "build": "rm -rf dist && mkdir dist && babel when.js --out-file dist/when.js",
+    "lint": "eslint .",
+    "lint.fix": "eslint . --fix"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
+    "babel-eslint": "^8.2.3",
     "babel-jest": "^22.1.0",
     "babel-preset-es2015": "^6.24.1",
+    "eslint": "^4.19.1",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.1.0",
     "jest": "^22.1.1",
+    "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.11.1"
   },
   "dependencies": {
     "expect": "^22.1.0"
-  }
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ]
 }

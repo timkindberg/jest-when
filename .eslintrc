@@ -1,0 +1,7 @@
+{
+  "parser": "babel-eslint",
+  "rules": {
+    "semi": ["error", "always"],
+    "no-trailing-spaces": ["error"]
+  }
+}
