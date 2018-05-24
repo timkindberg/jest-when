@@ -27,6 +27,34 @@ const result = fn(1, true, 'foo');
 expect(result).toEqual('yay!');
 ```
 
+#### Supports training for single calls
+```javascript
+import { when } from 'jest-when';
+
+const fn = jest.fn();
+when(fn).calledWith(1, true, 'foo').mockReturnValueOnce('yay!');
+when(fn).calledWith(1, true, 'foo').mockReturnValueOnce('nay!');
+
+expect(fn(1, true, 'foo')).toEqual('yay!');
+expect(fn(1, true, 'foo')).toEqual('nay!');
+expect(fn(1, true, 'foo')).toBeUndefined();
+```
+
+#### Supports Promises
+```javascript
+import { when } from 'jest-when';
+
+const fn = jest.fn();
+when(fn).calledWith(1, true, 'foo').mockResolvedValue('yay!');
+when(fn).calledWith(2, false, 'bar').mockResolvedValueOnce('nay!');
+
+expect(await fn(1, true, 'foo')).toEqual('yay!');
+expect(await fn(1, true, 'foo')).toEqual('yay!');
+
+expect(await fn(2, false, 'bar')).toEqual('nay!');
+expect(await fn(2, false, 'bar')).toBeUndefined();
+```
+
 #### Supports jest matchers:
 ```javascript
 import { when } from 'jest-when';
