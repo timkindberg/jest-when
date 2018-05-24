@@ -12,6 +12,7 @@ describe('When', () => {
 
       expect(whenFn).toBeInstanceOf(WhenMock);
       expect(whenFn.fn).toBe(fn);
+      expect(whenFn.debug).toBe(false);
     });
 
     it('returns existing WhenMock if fn was already whenified', () => {
@@ -73,6 +74,29 @@ describe('When', () => {
       expect(fn(false, /asdf/g)).toEqual('z');
     });
 
+    it('should log if debug is enabled', () => {
+      const fn = jest.fn();
+      console.log = jest.fn();
+
+      const whenFn = when(fn, { debug: true });
+      whenFn.calledWith(1).mockReturnValue('x');
+
+      fn(1);
+
+      expect(whenFn.debug).toBeTruthy();
+      expect(console.log).toBeCalled();
+    });
+
+    it('returns a declared value repeatedly', () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith(1).mockReturnValue('x');
+
+      expect(fn(1)).toEqual('x');
+      expect(fn(1)).toEqual('x');
+      expect(fn(1)).toEqual('x');
+    });
+
     it('expectCalledWith: fails a test with error messaging if argument does not match', () => {
       const fn1 = jest.fn();
       const fn2 = jest.fn();
@@ -82,6 +106,38 @@ describe('When', () => {
 
       expect(() => fn1(2)).toThrow(errMsg({ expect: 1, actual: 2 }));
       expect(() => fn2('bar')).not.toThrow();
+    });
+
+    it('mockReturnValueOnce: should return specified value only once', () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith('foo').mockReturnValueOnce('bar');
+      when(fn).calledWith('foo').mockReturnValueOnce('cbs');
+
+      expect(fn('foo')).toEqual('bar');
+      expect(fn('foo')).toEqual('cbs');
+      expect(fn('foo')).toBeUndefined();
+    });
+
+    it('mockResolvedValue: should return a Promise', async () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith('foo').mockResolvedValue('bar');
+
+      // expect(fn('foo').then).toBe(Function())
+      expect(await fn('foo')).toEqual('bar');
+    });
+
+    it('mockResolvedValueOnce: should return a Promise only once', async () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith('foo').mockResolvedValueOnce('bar');
+      when(fn).calledWith('foo').mockResolvedValueOnce('cbs');
+
+      // expect(fn('foo').then).toBe(Function())
+      expect(await fn('foo')).toEqual('bar');
+      expect(await fn('foo')).toEqual('cbs');
+      expect(await fn('foo')).toBeUndefined();
     });
   });
 });
