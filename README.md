@@ -59,6 +59,18 @@ expect(fn(4)).toEqual('way!');
 expect(fn(5)).toEqual(undefined);
 ```
 
+#### Supports one time mocks:
+```javascript
+import { when } from 'jest-when';
+
+const fn = jest.fn();
+when(fn).calledWith(1).mockReturnValueOnce('no');
+when(fn).calledWith(1).mockReturnValue('way?');
+
+expect(fn(1)).toEqual('no');
+expect(fn(1)).toEqual('way?');
+```
+
 #### Assert the args:
 
 Use `expectCalledWith` instead to run an assertion that the `fn` was called with the provided args. Your test will fail if the jest mock function is ever called without those exact `expectCalledWith` params.

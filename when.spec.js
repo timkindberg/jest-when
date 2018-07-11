@@ -83,5 +83,15 @@ describe('When', () => {
       expect(() => fn1(2)).toThrow(errMsg({ expect: 1, actual: 2 }));
       expect(() => fn2('bar')).not.toThrow();
     });
+
+    it('works with mockReturnValueOnce', () => {
+      const fn = jest.fn();
+
+      when(fn).calledWith('foo').mockReturnValueOnce('x');
+      when(fn).calledWith('foo').mockReturnValue('y');
+
+      expect(fn('foo')).toEqual('x');
+      expect(fn('foo')).toEqual('y');
+    });
   });
 });

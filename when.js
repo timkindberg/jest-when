@@ -7,14 +7,23 @@ export class WhenMock {
     this.debug = false;
     this.log = (...args) => this.debug && console.log(...args);
 
-    const mockReturnValue = (matchers, assertCall) => (val) => {
-      this.callMocks.push({ matchers, val, assertCall });
+    const mockReturnValue = (matchers, assertCall, limit = null) => (val) => {
+      this.callMocks.push({ matchers, val, assertCall, limit });
 
       this.fn.mockImplementation((...args) => {
         this.log('mocked impl', args);
 
         for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, val, assertCall } = this.callMocks[i];
+          const { matchers, val, assertCall, limit } = this.callMocks[i];
+
+          if (limit === 0) {
+            continue;
+          }
+
+          if (limit !== null) {
+            this.callMocks[i].limit = limit - 1;
+          }
+
           const match = matchers.reduce((match, matcher, i) => {
             this.log(`matcher check, match: ${match}, index: ${i}`);
 
@@ -43,8 +52,14 @@ export class WhenMock {
       });
     };
 
-    this.calledWith = (...matchers) => ({ mockReturnValue: mockReturnValue(matchers, false) });
-    this.expectCalledWith = (...matchers) => ({ mockReturnValue: mockReturnValue(matchers, true) });
+    this.calledWith = (...matchers) => ({
+      mockReturnValue: mockReturnValue(matchers, false),
+      mockReturnValueOnce: mockReturnValue(matchers, false, 1)
+    });
+    this.expectCalledWith = (...matchers) => ({
+      mockReturnValue: mockReturnValue(matchers, true),
+      mockReturnValueOnce: mockReturnValue(matchers, false, 1)
+    });
   }
 }
 
