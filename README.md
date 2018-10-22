@@ -5,9 +5,9 @@
 [![GitHub license](https://img.shields.io/github/license/timkindberg/jest-when.svg)](https://github.com/timkindberg/jest-when/blob/master/LICENSE)
 [![npm](https://img.shields.io/npm/v/jest-when.svg)](https://www.npmjs.com/package/jest-when)
 
-A fork from [@timkindberg](https://github.com/timkindberg/)'s [jest-when](https://github.com/timkindberg/jest-when).
-
 An extended, sugary way to mock return values for specific arguments only
+
+> Many thanks to @jonasholtkamp. He forked this repo when I was inactive and stewarded several key features and bug fixes!
 
 ### Features
 `jest-when` allows you to use a set of the original
@@ -168,5 +168,6 @@ fn(2); // Will throw a helpful jest assertion error with args diff
 
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
+* [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)
 * [@fkloes](https://github.com/fkloes)
 * [@danielhusar](https://github.com/danielhusar)
