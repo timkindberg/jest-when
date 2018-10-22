@@ -1,16 +1,16 @@
-# jest-when-xt
+# jest-when
 
-[![build status](https://travis-ci.org/jonasholtkamp/jest-when-xt.svg?branch=master)](https://travis-ci.org/jonasholtkamp/jest-when-xt)
-[![codecov](https://codecov.io/gh/jonasholtkamp/jest-when-xt/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasholtkamp/jest-when-xt)
-[![GitHub license](https://img.shields.io/github/license/jonasholtkamp/jest-when-xt.svg)](https://github.com/jonasholtkamp/jest-when-xt/blob/master/LICENSE)
-[![npm](https://img.shields.io/npm/v/jest-when-xt.svg)](https://www.npmjs.com/package/jest-when-xt)
+[![build status](https://travis-ci.org/timkindberg/jest-when.svg?branch=master)](https://travis-ci.org/timkindberg/jest-when)
+[![codecov](https://codecov.io/gh/timkindberg/jest-when/branch/master/graph/badge.svg)](https://codecov.io/gh/timkindberg/jest-when)
+[![GitHub license](https://img.shields.io/github/license/timkindberg/jest-when.svg)](https://github.com/timkindberg/jest-when/blob/master/LICENSE)
+[![npm](https://img.shields.io/npm/v/jest-when.svg)](https://www.npmjs.com/package/jest-when)
 
 A fork from [@timkindberg](https://github.com/timkindberg/)'s [jest-when](https://github.com/timkindberg/jest-when).
 
 An extended, sugary way to mock return values for specific arguments only
 
 ### Features
-`jest-when-xt` allows you to use a set of the original
+`jest-when` allows you to use a set of the original
 [Jest mock functions](https://facebook.github.io/jest/docs/en/mock-function-api) in order to train
 your mocks only based on parameters your mocked function is called with.
 
@@ -38,12 +38,12 @@ The supported set of mock functions is:
 
 #### Installation
 ```bash
-npm i --save-dev jest-when-xt
+npm i --save-dev jest-when
 ```
 
 #### Basic usage:
 ```javascript
-import { when } from 'jest-when-xt'
+import { when } from 'jest-when'
 
 const fn = jest.fn()
 when(fn).calledWith(1).mockReturnValue('yay!')

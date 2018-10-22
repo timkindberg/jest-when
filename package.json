@@ -1,6 +1,6 @@
 {
-  "name": "jest-when-xt",
-  "version": "0.1.1",
+  "name": "jest-when",
+  "version": "2.0.0",
   "description": "An extension lib for jest",
   "license": "MIT",
   "main": "src/when.js",
@@ -12,9 +12,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jonasholtkamp/jest-when-xt/"
+    "url": "https://github.com/timkindberg/jest-when/"
   },
   "contributors": [
+    "Tim Kindberg <timkindberg@gmail.com>",
     "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
   ],
   "dependencies": {
