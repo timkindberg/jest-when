@@ -1,0 +1,11 @@
+{
+  "extends": "standard",
+  "env": {
+    "es6": true,
+    "node": true,
+    "jest": true
+  },
+  "rules": {
+    "object-curly-spacing": ["error", "always"]
+  }
+}

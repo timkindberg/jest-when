@@ -1,31 +1,58 @@
 {
-  "name": "jest-when",
-  "version": "1.1.0",
-  "description": "A when(fn).calledWith(args).thenReturn(value) lib for jest",
-  "main": "dist/when.js",
-  "files": [
-    "dist/when.js"
-  ],
-  "author": "Tim Kindberg",
-  "repository": {
-    "type" : "git",
-    "url" : "https://github.com/timkindberg/jest-when.git"
-  },
+  "name": "jest-when-xt",
+  "version": "0.1.1",
+  "description": "An extension lib for jest",
   "license": "MIT",
-  "private": false,
+  "main": "src/when.js",
   "scripts": {
     "test": "jest",
-    "build": "rm -rf dist && mkdir dist && babel when.js --out-file dist/when.js"
+    "lint": "eslint src/",
+    "lint.fix": "eslint src/ --fix",
+    "stryker": "stryker run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonasholtkamp/jest-when-xt/"
+  },
+  "contributors": [
+    "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
+  ],
+  "dependencies": {
+    "bunyan": "^1.8.12",
+    "expect": "^22.4.3"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.0",
-    "babel-jest": "^22.1.0",
-    "babel-preset-es2015": "^6.24.1",
+    "eslint": "^4.19.1",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.1.0",
     "jest": "^22.1.1",
-    "regenerator-runtime": "^0.11.1"
+    "pre-commit": "^1.2.2",
+    "stryker": "^0.24.0",
+    "stryker-api": "^0.17.1",
+    "stryker-html-reporter": "^0.14.1",
+    "stryker-javascript-mutator": "^0.7.1",
+    "stryker-jest-runner": "^0.7.0"
   },
-  "dependencies": {
-    "expect": "^22.1.0"
-  }
+  "jest": {
+    "verbose": false,
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageDirectory": "build/reports/coverage/",
+    "coverageReporters": [
+      "html",
+      "lcov",
+      "text"
+    ],
+    "testEnvironment": "node",
+    "resetModules": true
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ]
 }

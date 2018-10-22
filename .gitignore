@@ -1,3 +1,7 @@
+node_modules
+.vscode
+coverage
+package-lock.json
+reports
+.stryker-tmp/
 /.idea
-/node_modules
-/dist
