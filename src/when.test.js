@@ -262,5 +262,18 @@ describe('When', () => {
       await expect(fn('foo')).rejects.toThrow('bar')
       expect(await fn('foo')).toBeUndefined()
     })
+
+    it('can be reset via `mockReset`', () => {
+      const fn = jest.fn()
+
+      when(fn).calledWith(1).mockReturnValue('return 1')
+      expect(fn(1)).toEqual('return 1')
+
+      fn.mockReset()
+      expect(fn(1)).toBeUndefined()
+
+      when(fn).calledWith(1).mockReturnValue('return 2')
+      expect(fn(1)).toEqual('return 2')
+    })
   })
 })
