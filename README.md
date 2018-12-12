@@ -166,6 +166,20 @@ when(fn).expectCalledWith(1).mockReturnValue('x')
 fn(2); // Will throw a helpful jest assertion error with args diff
 ```
 
+#### Supports default behavior
+
+Use any of `mockReturnValue`, `mockResolvedValue` or `mockRejectedValue` directly on the object
+to set up a default behavior, which will serve as fallback if no matcher fits.
+
+```javascript
+when(fn)
+  .mockReturnValue('default')
+  .calledWith('foo').mockReturnValue('special')
+
+expect(fn('foo')).toEqual('special')
+expect(fn('bar')).toEqual('default')
+```
+
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
 * [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)
