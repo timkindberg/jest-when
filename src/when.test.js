@@ -275,5 +275,112 @@ describe('When', () => {
       when(fn).calledWith(1).mockReturnValue('return 2')
       expect(fn(1)).toEqual('return 2')
     })
+
+    it('has a default and a non-default behavior', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockReturnValue('default')
+        .calledWith('foo')
+        .mockReturnValue('special')
+
+      expect(fn('bar')).toEqual('default')
+      expect(fn('foo')).toEqual('special')
+      expect(fn('bar')).toEqual('default')
+    })
+
+    it('has a default which is falsy', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockReturnValue(false)
+        .calledWith('foo')
+        .mockReturnValue('special')
+
+      expect(fn('bar')).toEqual(false)
+      expect(fn('foo')).toEqual('special')
+      expect(fn('bar')).toEqual(false)
+    })
+
+    it('keeps the default with a lot of matchers', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockReturnValue('default')
+        .calledWith('in1').mockReturnValue('out1')
+        .calledWith('in2').mockReturnValue('out2')
+        .calledWith('in3').mockReturnValue('out3')
+        .calledWith('in4').mockReturnValueOnce('out4')
+
+      expect(fn('foo')).toEqual('default')
+      expect(fn('in2')).toEqual('out2')
+      expect(fn('in4')).toEqual('out4')
+      expect(fn('in1')).toEqual('out1')
+      expect(fn('in3')).toEqual('out3')
+      expect(fn('in4')).toEqual('default')
+    })
+
+    it('has a default and non-default resolved value', async () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockResolvedValue('default')
+        .calledWith('foo').mockResolvedValue('special')
+
+      await expect(fn('bar')).resolves.toEqual('default')
+      await expect(fn('foo')).resolves.toEqual('special')
+    })
+
+    it('has a default and non-default rejected value', async () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockRejectedValue(new Error('default'))
+        .calledWith('foo').mockRejectedValue(new Error('special'))
+
+      await expect(fn('bar')).rejects.toThrow('default')
+      await expect(fn('foo')).rejects.toThrow('special')
+    })
+
+    it('default reject interoperates with resolve', async () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockRejectedValue(new Error('non-mocked interaction'))
+        .calledWith('foo').mockResolvedValue('mocked')
+
+      await expect(fn('foo')).resolves.toEqual('mocked')
+      await expect(fn('bar')).rejects.toThrow('non-mocked interaction')
+    })
+
+    it('can override default', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockReturnValue('oldDefault')
+        .mockReturnValue('newDefault')
+        .calledWith('foo').mockReturnValue('bar')
+
+      expect(fn('foo')).toEqual('bar')
+      expect(fn('foo2')).toEqual('newDefault')
+    })
+
+    it('will throw because of unintended usage', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockReturnValue('default')
+
+      expect(fn).toThrow('Uninteded use: Only use default value in combination with .calledWith(..), ' +
+        'or use standard mocking without jest-when.')
+    })
+
+    it('will not throw on old non-throwing case', () => {
+      const fn = jest.fn()
+
+      when(fn)
+
+      expect(fn).not.toThrow()
+    })
   })
 })

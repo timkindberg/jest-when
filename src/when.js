@@ -22,11 +22,18 @@ const checkArgumentMatchers = (assertCall, args) => (match, matcher, i) => {
   return utils.equals(arg, matcher)
 }
 class WhenMock {
-  constructor (fn) {
+  constructor (fn, defaultValue = { isSet: false, val: undefined }) {
     this.fn = fn
     this.callMocks = []
 
-    const mockReturnValue = (matchers, assertCall, once = false) => (val) => {
+    if (defaultValue.isSet) {
+      this.fn.mockImplementation(() => {
+        throw new Error('Uninteded use: Only use default value in combination with .calledWith(..), ' +
+          'or use standard mocking without jest-when.')
+      })
+    }
+
+    const _mockReturnValue = (matchers, assertCall, once = false) => (val) => {
       // To enable dynamic replacement during a test:
       // * call mocks with equal matchers are removed
       // * `once` mocks are used prioritized
@@ -54,6 +61,8 @@ class WhenMock {
             return val
           }
         }
+
+        return defaultValue.val
       })
 
       return {
@@ -63,13 +72,17 @@ class WhenMock {
     }
 
     const mockFunctions = (matchers, assertCall) => ({
-      mockReturnValue: val => mockReturnValue(matchers, assertCall)(val),
-      mockReturnValueOnce: val => mockReturnValue(matchers, assertCall, true)(val),
-      mockResolvedValue: val => mockReturnValue(matchers, assertCall)(Promise.resolve(val)),
-      mockResolvedValueOnce: val => mockReturnValue(matchers, assertCall, true)(Promise.resolve(val)),
-      mockRejectedValue: err => mockReturnValue(matchers, assertCall)(Promise.reject(err)),
-      mockRejectedValueOnce: err => mockReturnValue(matchers, assertCall, true)(Promise.reject(err))
+      mockReturnValue: val => _mockReturnValue(matchers, assertCall)(val),
+      mockReturnValueOnce: val => _mockReturnValue(matchers, assertCall, true)(val),
+      mockResolvedValue: val => _mockReturnValue(matchers, assertCall)(Promise.resolve(val)),
+      mockResolvedValueOnce: val => _mockReturnValue(matchers, assertCall, true)(Promise.resolve(val)),
+      mockRejectedValue: err => _mockReturnValue(matchers, assertCall)(Promise.reject(err)),
+      mockRejectedValueOnce: err => _mockReturnValue(matchers, assertCall, true)(Promise.reject(err))
     })
+
+    this.mockReturnValue = val => new WhenMock(fn, { isSet: true, val })
+    this.mockResolvedValue = val => this.mockReturnValue(Promise.resolve(val))
+    this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
 
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
 
