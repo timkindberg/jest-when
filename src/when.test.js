@@ -397,7 +397,7 @@ describe('When', () => {
     it('allows using mockImplementationOnce', () => {
       const fn = jest.fn()
 
-      when(fn).calledWith('foo', 'bar').mockImplementation((...args) => args)
+      when(fn).calledWith('foo', 'bar').mockImplementationOnce((...args) => args)
 
       expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
       expect(fn('foo')).toBeUndefined()
