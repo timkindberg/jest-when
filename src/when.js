@@ -58,7 +58,7 @@ class WhenMock {
               }
               return true
             })
-            return typeof val === 'function' ? val() : val
+            return typeof val === 'function' ? val(...args) : val
           }
         }
 

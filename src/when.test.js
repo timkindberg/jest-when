@@ -385,21 +385,21 @@ describe('When', () => {
 
     it('allows using mockImplementation', () => {
       const fn = jest.fn()
-      const expectedReturnValue = 'bar'
 
-      when(fn).calledWith('foo').mockImplementation(() => expectedReturnValue)
+      when(fn).calledWith('foo', 'bar').mockImplementation((...args) => args)
 
-      expect(fn('foo')).toBe('bar')
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
+
       expect(fn('not-foo')).toBeUndefined()
     })
 
     it('allows using mockImplementationOnce', () => {
       const fn = jest.fn()
-      const expectedReturnValue = 'bar'
 
-      when(fn).calledWith('foo').mockImplementationOnce(() => expectedReturnValue)
+      when(fn).calledWith('foo', 'bar').mockImplementation((...args) => args)
 
-      expect(fn('foo')).toBe('bar')
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
       expect(fn('foo')).toBeUndefined()
     })
   })
