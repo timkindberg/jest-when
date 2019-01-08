@@ -33,6 +33,8 @@ The supported set of mock functions is:
 * `mockResolvedValueOnce`
 * `mockRejectedValue`
 * `mockRejectedValueOnce`
+* `mockImplementation`
+* `mockImplementationOnce`
 
 ### Usage
 
@@ -180,8 +182,22 @@ expect(fn('foo')).toEqual('special')
 expect(fn('bar')).toEqual('default')
 ```
 
+### Supports custom mock implementation via callback
+```javascript
+when(fn).mockImplementation((...args) => {
+  // custom mock logic
+  if (args.length === 1 && args[0] === "a") {
+    return 'foo'
+  }
+  
+  return 'bar'
+})
+```
+
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
 * [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)
 * [@fkloes](https://github.com/fkloes)
 * [@danielhusar](https://github.com/danielhusar)
+* [@idan-at](https://github.com/idan-at)
+
