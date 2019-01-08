@@ -33,6 +33,8 @@ The supported set of mock functions is:
 * `mockResolvedValueOnce`
 * `mockRejectedValue`
 * `mockRejectedValueOnce`
+* `mockImplementation`
+* `mockImplementationOnce`
 
 ### Usage
 
