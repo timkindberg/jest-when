@@ -182,17 +182,21 @@ expect(fn('foo')).toEqual('special')
 expect(fn('bar')).toEqual('default')
 ```
 
-### Supports custom mock implementation via callback
+#### Supports custom mockImplementation
+
+You could use this to call callbacks passed to your mock fn or other custom functionality.
+
 ```javascript
-when(fn).mockImplementation((...args) => {
-  // custom mock logic
-  if (args.length === 1 && args[0] === "a") {
-    return 'foo'
-  }
-  
-  return 'bar'
-})
+const cb = jest.fn()
+
+when(fn).calledWith(cb).mockImplementation(callbackArg => callbackArg())
+
+fn(cb)
+
+expect(cb).toBeCalled()
 ```
+
+Thanks to [@idan-at](https://github.com/idan-at).
 
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
