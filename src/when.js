@@ -23,6 +23,8 @@ const checkArgumentMatchers = (assertCall, args) => (match, matcher, i) => {
 }
 class WhenMock {
   constructor (fn, defaultValue = { isSet: false, val: undefined }) {
+    // Incrementing ids assigned to each call mock to help with sorting as new mocks are added
+    this.nextCallMockId = 0
     this.fn = fn
     this.callMocks = []
 
@@ -39,8 +41,15 @@ class WhenMock {
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, val, assertCall, once })
-        .sort(({ once }) => !once ? 1 : 0)
+        .concat({ matchers, val, assertCall, once, id: this.nextCallMockId })
+        .sort((a, b) => {
+          // Reduce their id by 1000 if they are a once mock, to sort them at the front
+          const aId = a.id - (a.once ? 1000 : 0)
+          const bId = b.id - (b.once ? 1000 : 0)
+          return aId - bId
+        })
+
+      this.nextCallMockId++
 
       this.fn.mockImplementation((...args) => {
         logger.debug('mocked impl', args)
