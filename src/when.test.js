@@ -382,5 +382,25 @@ describe('When', () => {
 
       expect(fn).not.toThrow()
     })
+
+    it('allows using mockImplementation', () => {
+      const fn = jest.fn()
+
+      when(fn).calledWith('foo', 'bar').mockImplementation((...args) => args)
+
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
+
+      expect(fn('not-foo')).toBeUndefined()
+    })
+
+    it('allows using mockImplementationOnce', () => {
+      const fn = jest.fn()
+
+      when(fn).calledWith('foo', 'bar').mockImplementationOnce((...args) => args)
+
+      expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
+      expect(fn('foo')).toBeUndefined()
+    })
   })
 })
