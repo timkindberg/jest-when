@@ -1,6 +1,8 @@
 const utils = require('expect/build/jasmine_utils')
 const logger = require('./log')('when')
 
+let registry = new Set()
+
 const checkArgumentMatchers = (assertCall, args) => (match, matcher, i) => {
   logger.debug(`matcher check, match: ${match}, index: ${i}`)
 
@@ -104,10 +106,21 @@ class WhenMock {
 const when = (fn) => {
   if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__
   fn.__whenMock__ = new WhenMock(fn)
+  registry.add(fn)
   return fn.__whenMock__
 }
 
+const resetAllWhenMocks = () => {
+  registry.forEach(fn => {
+    fn.__whenMock__ = undefined
+  })
+  registry = new Set()
+}
+
+when.resetAllWhenMocks = resetAllWhenMocks
+
 module.exports = {
   when,
+  resetAllWhenMocks,
   WhenMock
 }
