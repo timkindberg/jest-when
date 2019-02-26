@@ -198,6 +198,28 @@ expect(cb).toBeCalled()
 
 Thanks to [@idan-at](https://github.com/idan-at).
 
+#### Supports reseting mocks between tests
+
+You could use this to prevent mocks from carrying state between tests or assertions.
+
+```javascript
+const { when, resetAllWhenMocks } = require('jest-when')
+const fn = jest.fn()
+
+when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+
+expect(fn(1)).toEqual('x')
+
+resetAllWhenMocks()
+
+when(fn).expectCalledWith(1).mockReturnValueOnce('z')
+
+expect(fn(1)).toEqual('z')
+```
+
+Thanks to [@whoaa512](https://github.com/whoaa512).
+
+
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
 * [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)

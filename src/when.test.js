@@ -4,7 +4,7 @@ const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*\\n.*${expect}.*\\nReceived.*\\n.*${actual}`)
 
 describe('When', () => {
-  let spyEquals, when, WhenMock, mockLogger
+  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks
 
   beforeEach(() => {
     spyEquals = jest.spyOn(require('expect/build/jasmine_utils'), 'equals')
@@ -21,6 +21,7 @@ describe('When', () => {
     jest.mock('./log', () => () => mockLogger)
 
     when = require('./when').when
+    resetAllWhenMocks = require('./when').resetAllWhenMocks
     WhenMock = require('./when').WhenMock
   })
 
@@ -46,6 +47,18 @@ describe('When', () => {
       expect(whenFn1).toBeInstanceOf(WhenMock)
       expect(whenFn2).toBeInstanceOf(WhenMock)
       expect(whenFn1).toBe(whenFn2)
+    })
+
+    it('allows reset of mocks to enable overrides later', () => {
+      const fn = jest.fn()
+
+      when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+
+      resetAllWhenMocks()
+
+      when(fn).expectCalledWith(1).mockReturnValueOnce('z')
+
+      expect(fn(1)).toEqual('z')
     })
   })
 
