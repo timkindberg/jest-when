@@ -250,6 +250,17 @@ describe('When', () => {
       await expect(fn('foo')).rejects.toThrow('bar')
     })
 
+    it('mockRejectedValue: does not reject the Promise until the function is called', done => {
+      const fn = jest.fn()
+
+      when(fn).calledWith('foo').mockRejectedValue(new Error('bar'))
+
+      setTimeout(async () => {
+        await expect(fn('foo')).rejects.toThrow('bar')
+        done()
+      }, 0)
+    })
+
     it('mockRejectedValue: works with expectCalledWith', async () => {
       const fn = jest.fn()
 
@@ -265,6 +276,17 @@ describe('When', () => {
 
       await expect(fn('foo')).rejects.toThrow('bar')
       expect(await fn('foo')).toBeUndefined()
+    })
+
+    it('mockRejectedValueOnce: does not reject the Promise until the function is called', done => {
+      const fn = jest.fn()
+
+      when(fn).calledWith('foo').mockRejectedValueOnce(new Error('bar'))
+
+      setTimeout(async () => {
+        await expect(fn('foo')).rejects.toThrow('bar')
+        done()
+      }, 0)
     })
 
     it('mockRejectedValueOnce: works with expectCalledWith', async () => {
