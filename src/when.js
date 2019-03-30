@@ -43,7 +43,7 @@ class WhenMock {
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, val, assertCall, once, id: this.nextCallMockId })
+        .concat({ matchers, val, assertCall, once, hasBeenCalled: false, id: this.nextCallMockId })
         .sort((a, b) => {
           // Reduce their id by 1000 if they are a once mock, to sort them at the front
           const aId = a.id - (a.once ? 1000 : 0)
@@ -61,6 +61,7 @@ class WhenMock {
           const match = matchers.reduce(checkArgumentMatchers(assertCall, args), true)
 
           if (match) {
+            this.callMocks[i].hasBeenCalled = true
             let removedOneItem = false
             this.callMocks = this.callMocks.filter(mock => {
               if (mock.once && utils.equals(mock.matchers, matchers) && !removedOneItem) {
@@ -117,10 +118,23 @@ const resetAllWhenMocks = () => {
   registry = new Set()
 }
 
+const verifyAllWhenMocksCalled = () => {
+  registry.forEach(fn => {
+    fn.__whenMock__.callMocks.forEach(({ id, ...rest }) => {
+      expect({
+        ...rest,
+        name: fn.getMockName()
+      }).toEqual(expect.objectContaining({ hasBeenCalled: true }))
+    })
+  })
+}
+
 when.resetAllWhenMocks = resetAllWhenMocks
+when.verifyAllWhenMocksCalled = verifyAllWhenMocksCalled
 
 module.exports = {
   when,
   resetAllWhenMocks,
+  verifyAllWhenMocksCalled,
   WhenMock
 }
