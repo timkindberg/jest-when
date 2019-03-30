@@ -219,6 +219,32 @@ expect(fn(1)).toEqual('z')
 
 Thanks to [@whoaa512](https://github.com/whoaa512).
 
+#### Supports verifying that all mocked functions were called
+
+Call `verifyAllWhenMocksCalled` after your test to assert that all mocks were used.
+
+```javascript
+const { when, verifyAllWhenMocksCalled } = require('jest-when')
+const fn = jest.fn()
+
+when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+
+expect(fn(1)).toEqual('x')
+
+verifyAllWhenMocksCalled() // passes
+```
+
+```javascript
+const { when, verifyAllWhenMocksCalled } = require('jest-when')
+const fn = jest.fn()
+
+when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+
+verifyAllWhenMocksCalled() // fails
+```
+
+Thanks to [@roaclark](https://github.com/roaclark).
+
 
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
@@ -226,4 +252,6 @@ Thanks to [@whoaa512](https://github.com/whoaa512).
 * [@fkloes](https://github.com/fkloes)
 * [@danielhusar](https://github.com/danielhusar)
 * [@idan-at](https://github.com/idan-at)
+* [@whoaa512](https://github.com/whoaa512).
+* [@roaclark](https://github.com/roaclark)
 
