@@ -3,7 +3,7 @@ const logger = require('./log')('when')
 
 let registry = new Set()
 
-const checkArgumentMatchers = (assertCall, args) => (match, matcher, i) => {
+const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   logger.debug(`matcher check, match: ${match}, index: ${i}`)
 
   // Propagate failure to the end
@@ -17,14 +17,14 @@ const checkArgumentMatchers = (assertCall, args) => (match, matcher, i) => {
   logger.debug(`   arg: ${arg}`)
 
   // Assert the match for better messaging during a failure
-  if (assertCall) {
+  if (expectCall) {
     expect(arg).toEqual(matcher)
   }
 
   return utils.equals(arg, matcher)
 }
 class WhenMock {
-  constructor (fn, defaultValue = { isSet: false, val: undefined }) {
+  constructor (fn, defaultValue = { isSet: false, returnValue: undefined }) {
     // Incrementing ids assigned to each call mock to help with sorting as new mocks are added
     this.nextCallMockId = 0
     this.fn = fn
@@ -32,18 +32,18 @@ class WhenMock {
 
     if (defaultValue.isSet) {
       this.fn.mockImplementation(() => {
-        throw new Error('Uninteded use: Only use default value in combination with .calledWith(..), ' +
+        throw new Error('Unintended use: Only use default value in combination with .calledWith(..), ' +
           'or use standard mocking without jest-when.')
       })
     }
 
-    const _mockReturnValue = (matchers, assertCall, once = false) => (val) => {
+    const _mockReturnValue = (matchers, expectCall, once = false) => (returnValue) => {
       // To enable dynamic replacement during a test:
       // * call mocks with equal matchers are removed
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, val, assertCall, once, hasBeenCalled: false, id: this.nextCallMockId })
+        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId })
         .sort((a, b) => {
           // Reduce their id by 1000 if they are a once mock, to sort them at the front
           const aId = a.id - (a.once ? 1000 : 0)
@@ -57,11 +57,11 @@ class WhenMock {
         logger.debug('mocked impl', args)
 
         for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, val, assertCall } = this.callMocks[i]
-          const match = matchers.reduce(checkArgumentMatchers(assertCall, args), true)
+          const { matchers, returnValue, expectCall } = this.callMocks[i]
+          const match = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
 
           if (match) {
-            this.callMocks[i].hasBeenCalled = true
+            this.callMocks[i].called = true
             let removedOneItem = false
             this.callMocks = this.callMocks.filter(mock => {
               if (mock.once && utils.equals(mock.matchers, matchers) && !removedOneItem) {
@@ -70,32 +70,32 @@ class WhenMock {
               }
               return true
             })
-            return typeof val === 'function' ? val(...args) : val
+            return typeof returnValue === 'function' ? returnValue(...args) : returnValue
           }
         }
 
-        return defaultValue.val
+        return defaultValue.returnValue
       })
 
       return {
         ...this,
-        ...mockFunctions(matchers, assertCall)
+        ...mockFunctions(matchers, expectCall)
       }
     }
 
-    const mockFunctions = (matchers, assertCall) => ({
-      mockReturnValue: val => _mockReturnValue(matchers, assertCall)(val),
-      mockReturnValueOnce: val => _mockReturnValue(matchers, assertCall, true)(val),
-      mockResolvedValue: val => _mockReturnValue(matchers, assertCall)(Promise.resolve(val)),
-      mockResolvedValueOnce: val => _mockReturnValue(matchers, assertCall, true)(Promise.resolve(val)),
-      mockRejectedValue: err => _mockReturnValue(matchers, assertCall)(() => Promise.reject(err)),
-      mockRejectedValueOnce: err => _mockReturnValue(matchers, assertCall, true)(() => Promise.reject(err)),
-      mockImplementation: implementation => _mockReturnValue(matchers, assertCall)(implementation),
-      mockImplementationOnce: implementation => _mockReturnValue(matchers, assertCall, true)(implementation)
+    const mockFunctions = (matchers, expectCall) => ({
+      mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(returnValue),
+      mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(returnValue),
+      mockResolvedValue: returnValue => _mockReturnValue(matchers, expectCall)(Promise.resolve(returnValue)),
+      mockResolvedValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(Promise.resolve(returnValue)),
+      mockRejectedValue: err => _mockReturnValue(matchers, expectCall)(() => Promise.reject(err)),
+      mockRejectedValueOnce: err => _mockReturnValue(matchers, expectCall, true)(() => Promise.reject(err)),
+      mockImplementation: implementation => _mockReturnValue(matchers, expectCall)(implementation),
+      mockImplementationOnce: implementation => _mockReturnValue(matchers, expectCall, true)(implementation)
     })
 
-    this.mockReturnValue = val => new WhenMock(fn, { isSet: true, val })
-    this.mockResolvedValue = val => this.mockReturnValue(Promise.resolve(val))
+    this.mockReturnValue = returnValue => new WhenMock(fn, { isSet: true, returnValue })
+    this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
     this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
 
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
@@ -120,12 +120,17 @@ const resetAllWhenMocks = () => {
 
 const verifyAllWhenMocksCalled = () => {
   registry.forEach(fn => {
-    fn.__whenMock__.callMocks.forEach(({ id, ...rest }) => {
-      expect({
-        ...rest,
-        name: fn.getMockName()
-      }).toEqual(expect.objectContaining({ hasBeenCalled: true }))
-    })
+    const uncalledMocks = fn.__whenMock__.callMocks
+      .filter(mock => !mock.called)
+      // Map the mock obj to only the fields worth showing in the error diff
+      .map(({ called, expectCall, matchers, once, returnValue }) =>
+        ({ called, expectCall, matchers, once, returnValue }))
+
+    const expected = uncalledMocks.map(m => ({ ...m, called: true }))
+    const actual = uncalledMocks.map(m => ({ ...m, matchers: [] }))
+
+    const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called`
+    expect([msg, actual]).toEqual([msg, expected])
   })
 }
 

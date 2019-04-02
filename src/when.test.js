@@ -83,17 +83,15 @@ describe('When', () => {
       const fn1 = jest.fn()
       const fn2 = jest.fn()
 
-      when(fn1).expectCalledWith(1).mockReturnValue('z')
-      when(fn2).expectCalledWith(1).mockReturnValueOnce('x')
-      when(fn2).expectCalledWith(1).mockReturnValueOnce('y')
-      when(fn2).expectCalledWith(1).mockReturnValue('z')
+      when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
 
       fn1(1)
       fn2(1)
-      fn2(1)
 
-      const error = new RegExp(`Expected value to equal:\\n.*"hasBeenCalled": true`)
-      expect(verifyAllWhenMocksCalled).toThrow(error)
+      expect(verifyAllWhenMocksCalled).toThrow(/Failed verifyAllWhenMocksCalled: 2 not called/)
     })
   })
 
@@ -441,7 +439,7 @@ describe('When', () => {
       when(fn)
         .mockReturnValue('default')
 
-      expect(fn).toThrow('Uninteded use: Only use default value in combination with .calledWith(..), ' +
+      expect(fn).toThrow('Unintended use: Only use default value in combination with .calledWith(..), ' +
         'or use standard mocking without jest-when.')
     })
 
