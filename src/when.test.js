@@ -4,7 +4,7 @@ const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*\\n.*${expect}.*\\nReceived.*\\n.*${actual}`)
 
 describe('When', () => {
-  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks
+  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks, verifyAllWhenMocksCalled
 
   beforeEach(() => {
     spyEquals = jest.spyOn(require('expect/build/jasmine_utils'), 'equals')
@@ -22,6 +22,7 @@ describe('When', () => {
 
     when = require('./when').when
     resetAllWhenMocks = require('./when').resetAllWhenMocks
+    verifyAllWhenMocksCalled = require('./when').verifyAllWhenMocksCalled
     WhenMock = require('./when').WhenMock
   })
 
@@ -59,6 +60,38 @@ describe('When', () => {
       when(fn).expectCalledWith(1).mockReturnValueOnce('z')
 
       expect(fn(1)).toEqual('z')
+    })
+
+    it('allows checking that all mocks were called', () => {
+      const fn1 = jest.fn()
+      const fn2 = jest.fn()
+
+      when(fn1).expectCalledWith(1).mockReturnValue('z')
+      when(fn2).expectCalledWith(1).mockReturnValueOnce('x')
+      when(fn2).expectCalledWith(1).mockReturnValueOnce('y')
+      when(fn2).expectCalledWith(1).mockReturnValue('z')
+
+      fn1(1)
+      fn2(1)
+      fn2(1)
+      fn2(1)
+
+      expect(verifyAllWhenMocksCalled).not.toThrow()
+    })
+
+    it('fails verification check if all mocks were not called', () => {
+      const fn1 = jest.fn()
+      const fn2 = jest.fn()
+
+      when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+
+      fn1(1)
+      fn2(1)
+
+      expect(verifyAllWhenMocksCalled).toThrow(/Failed verifyAllWhenMocksCalled: 2 not called/)
     })
   })
 
@@ -406,7 +439,7 @@ describe('When', () => {
       when(fn)
         .mockReturnValue('default')
 
-      expect(fn).toThrow('Uninteded use: Only use default value in combination with .calledWith(..), ' +
+      expect(fn).toThrow('Unintended use: Only use default value in combination with .calledWith(..), ' +
         'or use standard mocking without jest-when.')
     })
 
