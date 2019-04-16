@@ -1,7 +1,10 @@
+const assert = require('assert')
 const utils = require('expect/build/jasmine_utils')
 const logger = require('./log')('when')
 
 let registry = new Set()
+
+const getCallLine = () => (new Error()).stack.split('\n')[4]
 
 const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   logger.debug(`matcher check, match: ${match}, index: ${i}`)
@@ -43,7 +46,7 @@ class WhenMock {
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId })
+        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
         .sort((a, b) => {
           // Reduce their id by 1000 if they are a once mock, to sort them at the front
           const aId = a.id - (a.once ? 1000 : 0)
@@ -120,17 +123,23 @@ const resetAllWhenMocks = () => {
 
 const verifyAllWhenMocksCalled = () => {
   registry.forEach(fn => {
-    const uncalledMocks = fn.__whenMock__.callMocks
-      .filter(mock => !mock.called)
-      // Map the mock obj to only the fields worth showing in the error diff
-      .map(({ called, expectCall, matchers, once, returnValue }) =>
-        ({ called, expectCall, matchers, once, returnValue }))
+    const allMocks = fn.__whenMock__.callMocks
+    const [calledMocks, uncalledMocks] = allMocks.reduce((memo, mock) => {
+      if (mock.called) {
+        memo[0].push(mock)
+      } else {
+        memo[1].push(mock)
+      }
+      return memo
+    }, [[], []])
 
-    const expected = uncalledMocks.map(m => ({ ...m, called: true }))
-    const actual = uncalledMocks.map(m => ({ ...m, matchers: [] }))
+    const callLines = uncalledMocks
+      .filter(m => Boolean(m.callLine))
+      .map(m => String(m.callLine).trim())
+      .join('\n')
+    const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called at:\n\n${callLines}`
 
-    const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called`
-    expect([msg, actual]).toEqual([msg, expected])
+    assert.ok(allMocks.length === calledMocks.length, msg)
   })
 }
 

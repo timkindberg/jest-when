@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`When when fails verification check if all mocks were not called with line numbers 1`] = `
+"Failed verifyAllWhenMocksCalled: 2 not called at:
+
+at Object.it (/Users/cjw/code/jest-when/src/when.test.js:103:53)
+at Object.it (/Users/cjw/code/jest-when/src/when.test.js:104:53)"
+`;
