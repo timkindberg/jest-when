@@ -106,7 +106,7 @@ describe('When', () => {
       fn1(1)
       fn2(1)
 
-      expect(verifyAllWhenMocksCalled).toThrowErrorMatchingSnapshot()
+      expect(verifyAllWhenMocksCalled).toThrow(/src\/when\.test\.js:\d{3}/)
     })
   })
 
