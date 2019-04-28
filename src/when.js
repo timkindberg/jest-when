@@ -60,19 +60,14 @@ class WhenMock {
         logger.debug('mocked impl', args)
 
         for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, returnValue, expectCall } = this.callMocks[i]
-          const match = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          const { matchers, returnValue, expectCall, once, called } = this.callMocks[i]
 
-          if (match) {
+          // Do not let a once mock match more than once
+          if (once && called) continue
+
+          const isMatch = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          if (isMatch) {
             this.callMocks[i].called = true
-            let removedOneItem = false
-            this.callMocks = this.callMocks.filter(mock => {
-              if (mock.once && utils.equals(mock.matchers, matchers) && !removedOneItem) {
-                removedOneItem = true
-                return false
-              }
-              return true
-            })
             return typeof returnValue === 'function' ? returnValue(...args) : returnValue
           }
         }
@@ -122,25 +117,23 @@ const resetAllWhenMocks = () => {
 }
 
 const verifyAllWhenMocksCalled = () => {
-  registry.forEach(fn => {
-    const allMocks = fn.__whenMock__.callMocks
-    const [calledMocks, uncalledMocks] = allMocks.reduce((memo, mock) => {
-      if (mock.called) {
-        memo[0].push(mock)
-      } else {
-        memo[1].push(mock)
-      }
+  const [allMocks, calledMocks, uncalledMocks] = Array.from(registry).reduce((acc, fn) => {
+    const mocks = fn.__whenMock__.callMocks
+    const [calledMocks, uncalledMocks] = mocks.reduce((memo, mock) => {
+      memo[mock.called ? 0 : 1].push(mock)
       return memo
     }, [[], []])
+    return [[...acc[0], ...mocks], [...acc[1], ...calledMocks], [...acc[2], ...uncalledMocks]]
+  }, [[], [], []])
 
-    const callLines = uncalledMocks
-      .filter(m => Boolean(m.callLine))
-      .map(m => String(m.callLine).trim())
-      .join('\n')
-    const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called at:\n\n${callLines}`
+  const callLines = uncalledMocks
+    .filter(m => Boolean(m.callLine))
+    .map(m => `\n  ${String(m.callLine).trim()}`)
+    .join('')
 
-    assert.ok(allMocks.length === calledMocks.length, msg)
-  })
+  const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called at:${callLines}\n\n\n...rest of the stack...`
+
+  assert.equal(`called mocks: ${calledMocks.length}`, `called mocks: ${allMocks.length}`, msg)
 }
 
 when.resetAllWhenMocks = resetAllWhenMocks
