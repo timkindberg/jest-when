@@ -1,7 +1,10 @@
+const assert = require('assert')
 const utils = require('expect/build/jasmine_utils')
 const logger = require('./log')('when')
 
 let registry = new Set()
+
+const getCallLine = () => (new Error()).stack.split('\n')[4]
 
 const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   logger.debug(`matcher check, match: ${match}, index: ${i}`)
@@ -43,7 +46,7 @@ class WhenMock {
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId })
+        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
         .sort((a, b) => {
           // Reduce their id by 1000 if they are a once mock, to sort them at the front
           const aId = a.id - (a.once ? 1000 : 0)
@@ -57,19 +60,14 @@ class WhenMock {
         logger.debug('mocked impl', args)
 
         for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, returnValue, expectCall } = this.callMocks[i]
-          const match = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          const { matchers, returnValue, expectCall, once, called } = this.callMocks[i]
 
-          if (match) {
+          // Do not let a once mock match more than once
+          if (once && called) continue
+
+          const isMatch = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          if (isMatch) {
             this.callMocks[i].called = true
-            let removedOneItem = false
-            this.callMocks = this.callMocks.filter(mock => {
-              if (mock.once && utils.equals(mock.matchers, matchers) && !removedOneItem) {
-                removedOneItem = true
-                return false
-              }
-              return true
-            })
             return typeof returnValue === 'function' ? returnValue(...args) : returnValue
           }
         }
@@ -119,19 +117,23 @@ const resetAllWhenMocks = () => {
 }
 
 const verifyAllWhenMocksCalled = () => {
-  registry.forEach(fn => {
-    const uncalledMocks = fn.__whenMock__.callMocks
-      .filter(mock => !mock.called)
-      // Map the mock obj to only the fields worth showing in the error diff
-      .map(({ called, expectCall, matchers, once, returnValue }) =>
-        ({ called, expectCall, matchers, once, returnValue }))
+  const [allMocks, calledMocks, uncalledMocks] = Array.from(registry).reduce((acc, fn) => {
+    const mocks = fn.__whenMock__.callMocks
+    const [calledMocks, uncalledMocks] = mocks.reduce((memo, mock) => {
+      memo[mock.called ? 0 : 1].push(mock)
+      return memo
+    }, [[], []])
+    return [[...acc[0], ...mocks], [...acc[1], ...calledMocks], [...acc[2], ...uncalledMocks]]
+  }, [[], [], []])
 
-    const expected = uncalledMocks.map(m => ({ ...m, called: true }))
-    const actual = uncalledMocks.map(m => ({ ...m, matchers: [] }))
+  const callLines = uncalledMocks
+    .filter(m => Boolean(m.callLine))
+    .map(m => `\n  ${String(m.callLine).trim()}`)
+    .join('')
 
-    const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called`
-    expect([msg, actual]).toEqual([msg, expected])
-  })
+  const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called at:${callLines}\n\n\n...rest of the stack...`
+
+  assert.equal(`called mocks: ${calledMocks.length}`, `called mocks: ${allMocks.length}`, msg)
 }
 
 when.resetAllWhenMocks = resetAllWhenMocks

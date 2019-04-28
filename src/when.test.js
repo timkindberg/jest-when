@@ -91,7 +91,33 @@ describe('When', () => {
       fn1(1)
       fn2(1)
 
-      expect(verifyAllWhenMocksCalled).toThrow(/Failed verifyAllWhenMocksCalled: 2 not called/)
+      let caughtErr
+
+      try {
+        verifyAllWhenMocksCalled()
+      } catch (e) {
+        caughtErr = e
+      }
+
+      expect(caughtErr.expected).toEqual('called mocks: 4')
+      expect(caughtErr.actual).toEqual('called mocks: 2')
+      expect(caughtErr.message).toMatch(/Failed verifyAllWhenMocksCalled: 2 not called/)
+    })
+
+    it('fails verification check if all mocks were not called with line numbers', () => {
+      const fn1 = jest.fn()
+      const fn2 = jest.fn()
+
+      when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+      when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+
+      fn1(1)
+      fn2(1)
+
+      // Should be two call lines printed, hence the {2} at the end of the regex
+      expect(verifyAllWhenMocksCalled).toThrow(/(src\/when\.test\.js:\d{3}(.|\s)*){2}/)
     })
   })
 
