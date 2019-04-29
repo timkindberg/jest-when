@@ -128,6 +128,16 @@ await expect(fn(4)).rejects.toThrow('oh no, an error again!')
 expect(await fn(4)).toBeUndefined()
 ```
 
+#### Supports jest.spyOn:
+```javascript
+const theSpiedMethod = jest.spyOn(theInstance, 'theMethod');
+when(theSpiedMethod)
+  .calledWith(1)
+  .mockReturnValue('mock');
+const returnValue = theInstance.theMethod(1);
+expect(returnValue).toBe('mock');
+```
+
 #### Supports jest matchers:
 ```javascript
 when(fn).calledWith(

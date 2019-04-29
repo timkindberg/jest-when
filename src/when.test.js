@@ -496,5 +496,22 @@ describe('When', () => {
       expect(fn('foo', 'bar')).toEqual(['foo', 'bar'])
       expect(fn('foo')).toBeUndefined()
     })
+
+    it('accepts a spied method:', () => {
+      class TheClass {
+        theMethod (theArgument) {
+          return 'real'
+        }
+      }
+
+      const theInstance = new TheClass()
+
+      const theSpiedMethod = jest.spyOn(theInstance, 'theMethod')
+      when(theSpiedMethod)
+        .calledWith(1)
+        .mockReturnValue('mock')
+      const returnValue = theInstance.theMethod(1)
+      expect(returnValue).toBe('mock')
+    })
   })
 })
