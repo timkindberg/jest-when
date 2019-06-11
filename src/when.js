@@ -100,6 +100,12 @@ class WhenMock {
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
 
     this.expectCalledWith = (...matchers) => ({ ...mockFunctions(matchers, true) })
+
+    this.resetWhenMocks = () => {
+      fn.mockImplementation(fn.__whenMock__._origMock);
+      fn.__whenMock__ = undefined;
+      registry.delete(fn);
+    }
   }
 }
 
