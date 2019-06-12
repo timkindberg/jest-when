@@ -62,6 +62,16 @@ describe('When', () => {
       expect(fn(1)).toEqual('z')
     })
 
+    it('reset of mocks restores original implementation', () => {
+      const fn = jest.fn(() => 'a')
+
+      when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+
+      resetAllWhenMocks()
+
+      expect(fn(1)).toEqual('a')
+    })
+
     it('allows checking that all mocks were called', () => {
       const fn1 = jest.fn()
       const fn2 = jest.fn()
