@@ -1,5 +1,5 @@
 const assert = require('assert')
-const utils = require('expect/build/jasmine_utils')
+const utils = require('expect/build/jasmineUtils')
 const logger = require('./log')('when')
 
 let registry = new Set()
