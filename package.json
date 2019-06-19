@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "bunyan": "^1.8.12",
-    "expect": "^22.4.3"
+    "expect": "^24.8.0"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
@@ -29,13 +29,12 @@
     "eslint-plugin-node": "^6.0.1",
     "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-standard": "^3.1.0",
-    "jest": "^22.1.1",
+    "jest": "^24.8.0",
     "pre-commit": "^1.2.2",
-    "stryker": "^0.24.0",
-    "stryker-api": "^0.17.1",
-    "stryker-html-reporter": "^0.14.1",
-    "stryker-javascript-mutator": "^0.7.1",
-    "stryker-jest-runner": "^0.7.0"
+    "@stryker-mutator/core": "^2.0.0",
+    "@stryker-mutator/html-reporter": "^2.0.0",
+    "@stryker-mutator/javascript-mutator": "^2.0.0",
+    "@stryker-mutator/jest-runner": "^2.0.0"
   },
   "jest": {
     "verbose": false,

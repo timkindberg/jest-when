@@ -1,13 +1,13 @@
 const { stringContaining } = expect
 
 const errMsg = ({ expect, actual }) =>
-  new RegExp(`Expected.*\\n.*${expect}.*\\nReceived.*\\n.*${actual}`)
+  new RegExp(`Expected.*${expect}.*\\nReceived.*${actual}`)
 
 describe('When', () => {
   let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks, verifyAllWhenMocksCalled
 
   beforeEach(() => {
-    spyEquals = jest.spyOn(require('expect/build/jasmine_utils'), 'equals')
+    spyEquals = jest.spyOn(require('expect/build/jasmineUtils'), 'equals')
 
     mockLogger = {
       info: jest.fn(),
