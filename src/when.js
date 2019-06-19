@@ -32,6 +32,7 @@ class WhenMock {
     this.nextCallMockId = 0
     this.fn = fn
     this.callMocks = []
+    this._origMock = fn.getMockImplementation()
 
     if (defaultValue.isSet) {
       this.fn.mockImplementation(() => {
@@ -99,6 +100,12 @@ class WhenMock {
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
 
     this.expectCalledWith = (...matchers) => ({ ...mockFunctions(matchers, true) })
+
+    this.resetWhenMocks = () => {
+      fn.mockImplementation(fn.__whenMock__._origMock)
+      fn.__whenMock__ = undefined
+      registry.delete(fn)
+    }
   }
 }
 
@@ -111,6 +118,7 @@ const when = (fn) => {
 
 const resetAllWhenMocks = () => {
   registry.forEach(fn => {
+    fn.mockImplementation(fn.__whenMock__._origMock)
     fn.__whenMock__ = undefined
   })
   registry = new Set()
