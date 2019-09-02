@@ -244,6 +244,24 @@ describe('When', () => {
       expect(() => fn2('bar')).not.toThrow()
     })
 
+    it('mockReturnValue: should return a function', () => {
+      const fn = jest.fn()
+      const returnValue = () => {}
+
+      when(fn).calledWith('foo').mockReturnValue(returnValue)
+
+      expect(fn('foo')).toBe(returnValue)
+    })
+
+    it('mockReturnValueOnce: should return a function', () => {
+      const fn = jest.fn()
+      const returnValue = () => {}
+
+      when(fn).calledWith('foo').mockReturnValueOnce(returnValue)
+
+      expect(fn('foo')).toBe(returnValue)
+    })
+
     it('mockReturnValueOnce: should return specified value only once', () => {
       const fn = jest.fn()
 
@@ -414,6 +432,17 @@ describe('When', () => {
       expect(fn('bar')).toEqual(false)
       expect(fn('foo')).toEqual('special')
       expect(fn('bar')).toEqual(false)
+    })
+
+    it('has a default which is a function', () => {
+      const fn = jest.fn()
+      const defaultValue = () => { }
+
+      when(fn)
+        .mockReturnValue(defaultValue)
+        .calledWith('bar').mockReturnValue('baz')
+
+      expect(fn('foo')).toBe(defaultValue)
     })
 
     it('keeps the default with a lot of matchers', () => {

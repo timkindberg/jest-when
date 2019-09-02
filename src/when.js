@@ -83,8 +83,8 @@ class WhenMock {
     }
 
     const mockFunctions = (matchers, expectCall) => ({
-      mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(returnValue),
-      mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(returnValue),
+      mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(() => returnValue),
+      mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(() => returnValue),
       mockResolvedValue: returnValue => _mockReturnValue(matchers, expectCall)(Promise.resolve(returnValue)),
       mockResolvedValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(Promise.resolve(returnValue)),
       mockRejectedValue: err => _mockReturnValue(matchers, expectCall)(() => Promise.reject(err)),
