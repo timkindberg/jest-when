@@ -229,8 +229,8 @@ describe('When', () => {
       when(fn).calledWith(symbol, 2).mockReturnValue('x')
 
       expect(fn(5)).toBeUndefined()
+      expect(fn(symbol, 2)).toBe('x')
       expect(mockLogger.debug).toBeCalledWith(stringContaining('matcher: Symbol(sym)'))
-      expect(mockLogger.debug).not.toBeCalledWith(stringContaining('matcher: 2'))
     })
 
     it('returns nothing if no declared value matches', () => {
