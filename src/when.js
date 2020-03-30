@@ -16,7 +16,7 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
 
   const arg = args[i]
 
-  logger.debug(`   matcher: ${matcher}`)
+  logger.debug(`   matcher: ${String(matcher)}`)
   logger.debug(`   arg: ${arg}`)
 
   // Assert the match for better messaging during a failure

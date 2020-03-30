@@ -223,6 +223,16 @@ describe('When', () => {
       expect(fn(2)).toEqual('y')
     })
 
+    it('should handle symbol matchers', () => {
+      const fn = jest.fn()
+      const symbol = Symbol.for(`sym`)
+      when(fn).calledWith(symbol, 2).mockReturnValue('x')
+
+      expect(fn(5)).toBeUndefined()
+      expect(mockLogger.debug).toBeCalledWith(stringContaining('matcher: Symbol(sym)'))
+      expect(mockLogger.debug).not.toBeCalledWith(stringContaining('matcher: 2'))
+    })
+
     it('returns nothing if no declared value matches', () => {
       const fn = jest.fn()
 
