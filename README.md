@@ -255,6 +255,33 @@ verifyAllWhenMocksCalled() // fails
 
 Thanks to [@roaclark](https://github.com/roaclark).
 
+### Alternative syntax using `given`
+
+As an alternative to the syntax using `when.mock*`, there's aliases for a
+`given.*` syntax:
+
+``` javascript
+given(..).calledWith(..).returns === when(..).calledWith(..).mockReturnValue
+given(..).calledWith(..).onceReturns === when(..).calledWith(..).mockReturnValueOnce
+given(..).calledWith(..).resolvesTo === when(..).calledWith(..).mockResolvedValue
+given(..).calledWith(..).onceResolvesTo === when(..).calledWith(..).mockResolvedValueOnce
+given(..).calledWith(..).rejectsWith === when(..).calledWith(..).mockRejectedValue
+given(..).calledWith(..).onceRejectsWith === when(..).calledWith(..).mockRejectedValueOnce
+given(..).calledWith(..).isImplementedAs === when(..).calledWith(..).mockImplementation
+given(..).calledWith(..).onceIsImplementedAs === when(..).calledWith(..).mockImplementationOnce
+```
+
+This works with `expectCalledWith` too, of course.
+
+The exports `GivenMock`, `verifyAllGivenMocksCalled` and `resetAllGivenMocks`
+are aliases to `WhenMock`, `verifyAllWhenMocksCalled` and `resetAllWhenMocks` respectively.
+
+The two syntaxes can be used interchangeably, although it's not recommended:
+
+``` javascript
+when(..).calledWith(..).returns(..)
+given(..).calledWith(..).mockReturnValue(..)
+```
 
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)

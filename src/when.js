@@ -82,20 +82,40 @@ class WhenMock {
       }
     }
 
-    const mockFunctions = (matchers, expectCall) => ({
-      mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(() => returnValue),
-      mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(() => returnValue),
-      mockResolvedValue: returnValue => _mockReturnValue(matchers, expectCall)(Promise.resolve(returnValue)),
-      mockResolvedValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(Promise.resolve(returnValue)),
-      mockRejectedValue: err => _mockReturnValue(matchers, expectCall)(() => Promise.reject(err)),
-      mockRejectedValueOnce: err => _mockReturnValue(matchers, expectCall, true)(() => Promise.reject(err)),
-      mockImplementation: implementation => _mockReturnValue(matchers, expectCall)(implementation),
-      mockImplementationOnce: implementation => _mockReturnValue(matchers, expectCall, true)(implementation)
-    })
+    const mockFunctions = (matchers, expectCall) => {
+      let functions = {
+        mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(() => returnValue),
+        mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(() => returnValue),
+        mockResolvedValue: returnValue => _mockReturnValue(matchers, expectCall)(Promise.resolve(returnValue)),
+        mockResolvedValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(Promise.resolve(returnValue)),
+        mockRejectedValue: err => _mockReturnValue(matchers, expectCall)(() => Promise.reject(err)),
+        mockRejectedValueOnce: err => _mockReturnValue(matchers, expectCall, true)(() => Promise.reject(err)),
+        mockImplementation: implementation => _mockReturnValue(matchers, expectCall)(implementation),
+        mockImplementationOnce: implementation => _mockReturnValue(matchers, expectCall, true)(implementation)
+      }
+
+      const aliases = [
+        ['mockReturnValue', 'returns'],
+        ['mockReturnValueOnce', 'onceReturns'],
+        ['mockResolvedValue', 'resolvesTo'],
+        ['mockResolvedValueOnce', 'onceResolvesTo'],
+        ['mockRejectedValue', 'rejectsWith'],
+        ['mockRejectedValueOnce', 'onceRejectsWith'],
+        ['mockImplementation', 'isImplementedAs'],
+        ['mockImplementationOnce', 'onceIsImplementedAs']
+      ]
+
+      aliases.forEach(([original, alias]) => { functions[alias] = functions[original] })
+
+      return functions
+    }
 
     this.mockReturnValue = returnValue => new WhenMock(fn, { isSet: true, returnValue })
     this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
     this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
+    this.returns = this.mockReturnValue
+    this.resolvesTo = this.mockResolvedValue
+    this.rejectsWith = this.mockRejectedValue
 
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
 
@@ -106,6 +126,7 @@ class WhenMock {
       fn.__whenMock__ = undefined
       registry.delete(fn)
     }
+    this.resetGivenMocks = this.resetWhenMocks
   }
 }
 
@@ -151,5 +172,9 @@ module.exports = {
   when,
   resetAllWhenMocks,
   verifyAllWhenMocksCalled,
-  WhenMock
+  WhenMock,
+  given: when,
+  resetAllGivenMocks: resetAllWhenMocks,
+  verifyAllGivenMocksCalled: verifyAllWhenMocksCalled,
+  GivenMock: WhenMock
 }
