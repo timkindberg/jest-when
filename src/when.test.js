@@ -572,5 +572,14 @@ describe('When', () => {
       const returnValue = theInstance.theMethod(1)
       expect(returnValue).toBe('mock')
     })
+
+    it('mocks implementation only once when using mockImplementationOnce', () => {
+      const fn = jest.fn()
+
+      when(fn).calledWith(expect.anything()).isImplementedAs(() => 'foo').mockImplementationOnce(() => 'bar')
+
+      expect(fn('')).toEqual('bar')
+      expect(fn('')).toEqual('foo')
+    })
   })
 })
