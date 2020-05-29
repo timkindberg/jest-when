@@ -102,9 +102,7 @@ class WhenMock {
     this.expectCalledWith = (...matchers) => ({ ...mockFunctions(matchers, true) })
 
     this.resetWhenMocks = () => {
-      fn.mockImplementation(fn.__whenMock__._origMock)
-      fn.__whenMock__ = undefined
-      registry.delete(fn)
+      resetWhenMocksOnFn(fn)
     }
   }
 }
@@ -113,15 +111,25 @@ const when = (fn) => {
   if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__
   fn.__whenMock__ = new WhenMock(fn)
   registry.add(fn)
+  fn._origMockReset = fn.mockReset
+  fn.mockReset = () => {
+    resetWhenMocksOnFn(fn)
+    fn.mockReset = fn._origMockReset
+    fn._origMockReset = undefined
+    fn.mockReset()
+  }
   return fn.__whenMock__
 }
 
 const resetAllWhenMocks = () => {
-  registry.forEach(fn => {
-    fn.mockImplementation(fn.__whenMock__._origMock)
-    fn.__whenMock__ = undefined
-  })
+  registry.forEach(resetWhenMocksOnFn)
   registry = new Set()
+}
+
+function resetWhenMocksOnFn (fn) {
+  fn.mockImplementation(fn.__whenMock__._origMock)
+  fn.__whenMock__ = undefined
+  registry.delete(fn)
 }
 
 const verifyAllWhenMocksCalled = () => {

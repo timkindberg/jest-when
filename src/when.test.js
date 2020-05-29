@@ -418,6 +418,24 @@ describe('When', () => {
       expect(fn(1)).toEqual('return 2')
     })
 
+    it('`mockReset` on unused when calls', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .calledWith('test')
+        .mockReturnValueOnce(1)
+        .mockReturnValueOnce(2)
+        // .mockReturnValueOnce(3)
+      expect(fn('test')).toBe(1)
+      expect(fn.mock.calls.length).toBe(1)
+
+      fn.mockReset()
+
+      when(fn).calledWith('test').mockReturnValueOnce(1)
+      expect(fn('test')).toBe(1)
+      expect(fn.mock.calls.length).toBe(1)
+    })
+
     it('has a default and a non-default behavior', () => {
       const fn = jest.fn()
 
