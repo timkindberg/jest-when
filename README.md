@@ -212,8 +212,6 @@ Thanks to [@idan-at](https://github.com/idan-at).
 
 You could use this to prevent mocks from carrying state between tests or assertions.
 
-> Note: Using a mock's `.mockReset()` function is not reliable, use this instead.
-
 ```javascript
 const { when, resetAllWhenMocks } = require('jest-when')
 const fn = jest.fn()
