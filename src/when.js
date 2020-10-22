@@ -49,10 +49,11 @@ class WhenMock {
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
         .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
         .sort((a, b) => {
-          // Reduce their id by 1000 if they are a once mock, to sort them at the front
-          const aId = a.id - (a.once ? 1000 : 0)
-          const bId = b.id - (b.once ? 1000 : 0)
-          return aId - bId
+          // Once mocks should appear before the rest
+          if (a.once !== b.once) {
+            return a.once ? -1 : 1
+          }
+          return a.id - b.id
         })
 
       this.nextCallMockId++
