@@ -95,7 +95,8 @@ class WhenMock {
       mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation)
     })
 
-    this.mockReturnValue = returnValue => new WhenMock(fn, () => returnValue)
+    this.mockImplementation = mockImplementation => new WhenMock(fn, mockImplementation)
+    this.mockReturnValue = returnValue => this.mockImplementation(() => returnValue)
     this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
     this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
 
