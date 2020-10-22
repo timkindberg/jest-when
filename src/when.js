@@ -27,14 +27,14 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   return utils.equals(arg, matcher)
 }
 class WhenMock {
-  constructor (fn, defaultValue = { isSet: false, returnValue: undefined }) {
+  constructor (fn, defaultImplementation = null) {
     // Incrementing ids assigned to each call mock to help with sorting as new mocks are added
     this.nextCallMockId = 0
     this.fn = fn
     this.callMocks = []
     this._origMock = fn.getMockImplementation()
 
-    if (defaultValue.isSet) {
+    if (defaultImplementation) {
       this.fn.mockImplementation(() => {
         throw new Error('Unintended use: Only use default value in combination with .calledWith(..), ' +
           'or use standard mocking without jest-when.')
@@ -63,6 +63,8 @@ class WhenMock {
         for (let i = 0; i < this.callMocks.length; i++) {
           const { matchers, mockImplementation, expectCall, once, called } = this.callMocks[i]
 
+          // TODO try them all first and then throw if found none
+
           // Do not let a once mock match more than once
           if (once && called) continue
 
@@ -73,7 +75,7 @@ class WhenMock {
           }
         }
 
-        return defaultValue.returnValue
+        return defaultImplementation ? defaultImplementation() : undefined
       })
 
       return {
@@ -93,7 +95,7 @@ class WhenMock {
       mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation)
     })
 
-    this.mockReturnValue = returnValue => new WhenMock(fn, { isSet: true, returnValue })
+    this.mockReturnValue = returnValue => new WhenMock(fn, () => returnValue)
     this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
     this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
 
