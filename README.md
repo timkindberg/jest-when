@@ -180,7 +180,7 @@ fn(2); // Will throw a helpful jest assertion error with args diff
 
 #### Supports default behavior
 
-Use any of `mockReturnValue`, `mockResolvedValue` or `mockRejectedValue` directly on the object
+Use any of `mockReturnValue`, `mockResolvedValue`, `mockRejectedValue`, `mockImplementation` directly on the object
 to set up a default behavior, which will serve as fallback if no matcher fits.
 
 ```javascript
