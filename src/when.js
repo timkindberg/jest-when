@@ -41,13 +41,13 @@ class WhenMock {
       })
     }
 
-    const _mockReturnValue = (matchers, expectCall, once = false) => (returnValue) => {
+    const _mockImplementation = (matchers, expectCall, once = false) => (mockImplementation) => {
       // To enable dynamic replacement during a test:
       // * call mocks with equal matchers are removed
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
-        .concat({ matchers, returnValue, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
+        .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
         .sort((a, b) => {
           // Reduce their id by 1000 if they are a once mock, to sort them at the front
           const aId = a.id - (a.once ? 1000 : 0)
@@ -61,7 +61,7 @@ class WhenMock {
         logger.debug('mocked impl', args)
 
         for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, returnValue, expectCall, once, called } = this.callMocks[i]
+          const { matchers, mockImplementation, expectCall, once, called } = this.callMocks[i]
 
           // Do not let a once mock match more than once
           if (once && called) continue
@@ -69,7 +69,7 @@ class WhenMock {
           const isMatch = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
           if (isMatch) {
             this.callMocks[i].called = true
-            return typeof returnValue === 'function' ? returnValue(...args) : returnValue
+            return mockImplementation(...args)
           }
         }
 
@@ -83,14 +83,14 @@ class WhenMock {
     }
 
     const mockFunctions = (matchers, expectCall) => ({
-      mockReturnValue: returnValue => _mockReturnValue(matchers, expectCall)(() => returnValue),
-      mockReturnValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(() => returnValue),
-      mockResolvedValue: returnValue => _mockReturnValue(matchers, expectCall)(Promise.resolve(returnValue)),
-      mockResolvedValueOnce: returnValue => _mockReturnValue(matchers, expectCall, true)(Promise.resolve(returnValue)),
-      mockRejectedValue: err => _mockReturnValue(matchers, expectCall)(() => Promise.reject(err)),
-      mockRejectedValueOnce: err => _mockReturnValue(matchers, expectCall, true)(() => Promise.reject(err)),
-      mockImplementation: implementation => _mockReturnValue(matchers, expectCall)(implementation),
-      mockImplementationOnce: implementation => _mockReturnValue(matchers, expectCall, true)(implementation)
+      mockReturnValue: returnValue => _mockImplementation(matchers, expectCall)(() => returnValue),
+      mockReturnValueOnce: returnValue => _mockImplementation(matchers, expectCall, true)(() => returnValue),
+      mockResolvedValue: returnValue => _mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
+      mockResolvedValueOnce: returnValue => _mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
+      mockRejectedValue: err => _mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
+      mockRejectedValueOnce: err => _mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
+      mockImplementation: implementation => _mockImplementation(matchers, expectCall)(implementation),
+      mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation)
     })
 
     this.mockReturnValue = returnValue => new WhenMock(fn, { isSet: true, returnValue })
