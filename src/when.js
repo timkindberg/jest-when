@@ -66,7 +66,10 @@ class WhenMock {
           // Do not let a once mock match more than once
           if (once && called) continue
 
-          const isMatch = matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          const isMatch =
+            args.length <= matchers.length &&
+            matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+
           if (isMatch) {
             this.callMocks[i].called = true
             return typeof returnValue === 'function' ? returnValue(...args) : returnValue
