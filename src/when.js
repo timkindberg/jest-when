@@ -64,8 +64,6 @@ class WhenMock {
         for (let i = 0; i < this.callMocks.length; i++) {
           const { matchers, mockImplementation, expectCall, once, called } = this.callMocks[i]
 
-          // TODO try them all first and then throw if found none
-
           // Do not let a once mock match more than once
           if (once && called) continue
 
