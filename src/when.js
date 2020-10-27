@@ -74,7 +74,7 @@ class WhenMock {
           }
         }
 
-        return defaultImplementation ? defaultImplementation() : undefined
+        return defaultImplementation ? defaultImplementation(...args) : undefined
       })
 
       return {
