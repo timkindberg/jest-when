@@ -68,7 +68,7 @@ class WhenMock {
           if (once && called) continue
 
           const isMatch =
-            args.length <= matchers.length &&
+            args.length === matchers.length &&
             matchers.reduce(checkArgumentMatchers(expectCall, args), true)
 
           if (isMatch) {
