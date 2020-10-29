@@ -164,13 +164,22 @@ describe('When', () => {
         .mockReturnValue('x')
 
       expect(fn(1, 'foo', true, 'whatever')).toEqual('x')
-      expect(fn(1, 'foo', true)).toEqual(undefined)
-      expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
       expect(spyEquals).toBeCalledWith(1, 1)
       expect(spyEquals).toBeCalledWith('foo', 'foo')
       expect(spyEquals).toBeCalledWith(true, true)
       expect(spyEquals).toBeCalledWith('whatever', anyString)
       expect(spyEquals).toBeCalledWith(undefined, undefined)
+    })
+
+    it('only matches exact sets of args, too little or too many args do not trigger mock return', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .calledWith(1, 'foo', true, expect.any(String), undefined)
+        .mockReturnValue('x')
+
+      expect(fn(1, 'foo', true)).toEqual(undefined)
+      expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
     it('supports compound when declarations', () => {
