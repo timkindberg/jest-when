@@ -484,6 +484,17 @@ describe('When', () => {
       expect(fn('bar')).toBe('baz')
     })
 
+    it('has access to args in a default implementation', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .mockImplementation(({ name }) => `Hello ${name}`)
+        .calledWith({ name: 'bar' }).mockReturnValue('Goodbye bar')
+
+      expect(fn({ name: 'foo' })).toBe('Hello foo')
+      expect(fn({ name: 'bar' })).toBe('Goodbye bar')
+    })
+
     it('keeps the default with a lot of matchers', () => {
       const fn = jest.fn()
 
