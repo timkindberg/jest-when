@@ -160,14 +160,15 @@ describe('When', () => {
       const anyString = expect.any(String)
 
       when(fn)
-        .calledWith(1, 'foo', true, anyString)
+        .calledWith(1, 'foo', true, anyString, undefined)
         .mockReturnValue('x')
 
-      expect(fn(1, 'foo', true, 'whatever')).toEqual('x')
+      expect(fn(1, 'foo', true, 'whatever', undefined)).toEqual('x')
       expect(spyEquals).toBeCalledWith(1, 1)
       expect(spyEquals).toBeCalledWith('foo', 'foo')
       expect(spyEquals).toBeCalledWith(true, true)
       expect(spyEquals).toBeCalledWith('whatever', anyString)
+      expect(spyEquals).toBeCalledWith(undefined, undefined)
     })
 
     it('only matches exact sets of args, too little or too many args do not trigger mock return', () => {
@@ -177,7 +178,10 @@ describe('When', () => {
         .calledWith(1, 'foo', true, expect.any(String), undefined)
         .mockReturnValue('x')
 
+      expect(fn(1, 'foo', true, 'whatever', undefined)).toEqual('x')
+
       expect(fn(1, 'foo', true, 'whatever')).toEqual(undefined)
+      expect(fn(1, 'foo', true, 'whatever', undefined, undefined)).toEqual(undefined)
       expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
