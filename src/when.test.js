@@ -163,7 +163,7 @@ describe('When', () => {
         .calledWith(1, 'foo', true, anyString, undefined)
         .mockReturnValue('x')
 
-      expect(fn(1, 'foo', true, 'whatever')).toEqual('x')
+      expect(fn(1, 'foo', true, 'whatever', undefined)).toEqual('x')
       expect(spyEquals).toBeCalledWith(1, 1)
       expect(spyEquals).toBeCalledWith('foo', 'foo')
       expect(spyEquals).toBeCalledWith(true, true)
@@ -178,7 +178,10 @@ describe('When', () => {
         .calledWith(1, 'foo', true, expect.any(String), undefined)
         .mockReturnValue('x')
 
-      expect(fn(1, 'foo', true)).toEqual(undefined)
+      expect(fn(1, 'foo', true, 'whatever', undefined)).toEqual('x')
+
+      expect(fn(1, 'foo', true, 'whatever')).toEqual(undefined)
+      expect(fn(1, 'foo', true, 'whatever', undefined, undefined)).toEqual(undefined)
       expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
