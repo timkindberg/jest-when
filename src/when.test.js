@@ -137,7 +137,7 @@ describe('When', () => {
       fn2(1)
 
       // Should be two call lines printed, hence the {2} at the end of the regex
-      expect(verifyAllWhenMocksCalled).toThrow(/(src\/when\.test\.js:\d{3}(.|\s)*){2}/)
+      expect(verifyAllWhenMocksCalled).toThrow(/(src(?:\\|\/)when\.test\.js:\d{3}(.|\s)*){2}/)
     })
   })
 
@@ -570,6 +570,31 @@ describe('When', () => {
 
       expect(fn('foo')).toEqual('bar')
       expect(fn('foo2')).toEqual('newDefault')
+    })
+
+    it('allows defining the default NOT in a chained case', () => {
+      const fn = jest.fn()
+
+      when(fn).mockRejectedValue(false)
+
+      when(fn)
+        .calledWith(expect.anything())
+        .mockResolvedValue(true)
+
+      expect(fn()).rejects.toEqual(false)
+    })
+
+    it('allows overriding the default NOT in a chained case', () => {
+      const fn = jest.fn()
+
+      when(fn).mockReturnValue(1)
+      when(fn).mockReturnValue(2)
+
+      when(fn)
+        .calledWith(expect.anything())
+        .mockReturnValue(true)
+
+      expect(fn()).toEqual(2)
     })
 
     it('will throw because of unintended usage', () => {

@@ -31,6 +31,7 @@ class WhenMock {
     // Incrementing ids assigned to each call mock to help with sorting as new mocks are added
     this.nextCallMockId = 0
     this.fn = fn
+    fn.__whenMock__ = this
     this.callMocks = []
     this._origMock = fn.getMockImplementation()
 
@@ -114,7 +115,7 @@ class WhenMock {
 
 const when = (fn) => {
   if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__
-  fn.__whenMock__ = new WhenMock(fn)
+  const whenMock = new WhenMock(fn)
   registry.add(fn)
   fn._origMockReset = fn.mockReset
   fn.mockReset = () => {
@@ -123,7 +124,7 @@ const when = (fn) => {
     fn._origMockReset = undefined
     fn.mockReset()
   }
-  return fn.__whenMock__
+  return whenMock
 }
 
 const resetAllWhenMocks = () => {
