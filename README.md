@@ -23,8 +23,8 @@ when(fn).calledWith(1).mockReturnValue('yay!')
 ```
 
 The trained mock function `fn` will now behave as follows -- assumed no other trainings took place:
-* return `yay!` if called with `1` _as first parameter_
-* return `undefined` if called with _any other first parameter_ than `1`
+* return `yay!` if called with `1` _as the only parameter_
+* return `undefined` if called with _any parameters other_ than `1`
 
 For extended usage see the examples below.
 
@@ -89,14 +89,6 @@ This replacement of the training does only happen for mock functions _not_ endin
 Trainings like `mockReturnValueOnce` are removed after a matching function call anyway.
 
 Thanks to [@fkloes](https://github.com/fkloes).
-
-#### Supports multiple args with partial argument matching:
-```javascript
-when(fn).calledWith(1, true).mockReturnValue('yay!')
-
-expect(fn(1, true)).toEqual('yay!')
-expect(fn(1, true, 'foo')).toEqual('yay!')
-```
 
 #### Supports training for single calls
 ```javascript
