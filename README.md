@@ -4,10 +4,12 @@
 [![codecov](https://codecov.io/gh/timkindberg/jest-when/branch/master/graph/badge.svg)](https://codecov.io/gh/timkindberg/jest-when)
 [![GitHub license](https://img.shields.io/github/license/timkindberg/jest-when.svg)](https://github.com/timkindberg/jest-when/blob/master/LICENSE)
 [![npm](https://img.shields.io/npm/v/jest-when.svg)](https://www.npmjs.com/package/jest-when)
+[![ThoughtWorks Tech Radar 2020 | Adopt](https://img.shields.io/badge/Tech%20Radar-Adopt-b3005d)](https://www.thoughtworks.com/radar/languages-and-frameworks?blipid=201911030)
 
-An extended, sugary way to mock return values for specific arguments only
+Specify dynamic return values for specifically matched mocked function arguments. Flexible matchers. Feels like canonical jest syntax.
 
-> Many thanks to @jonasholtkamp. He forked this repo when I was inactive and stewarded several key features and bug fixes!
+ThoughtWorks says:
+> jest-when is a lightweight JavaScript library that complements Jest by matching mock function call arguments. Jest is a great tool for testing the stack; jest-when allows you to expect specific arguments for mock functions which enables you to write more robust unit tests of modules with many dependencies. It's easy to use and provides great support for multiple matchers, which is why our teams have made jest-when their default choice for mocking in this space.
 
 ### Features
 `jest-when` allows you to use a set of the original
@@ -21,8 +23,8 @@ when(fn).calledWith(1).mockReturnValue('yay!')
 ```
 
 The trained mock function `fn` will now behave as follows -- assumed no other trainings took place:
-* return `yay!` if called with `1` _as first parameter_
-* return `undefined` if called with _any other first parameter_ than `1`
+* return `yay!` if called with `1` _as the only parameter_
+* return `undefined` if called with _any parameters other_ than `1`
 
 For extended usage see the examples below.
 
@@ -87,14 +89,6 @@ This replacement of the training does only happen for mock functions _not_ endin
 Trainings like `mockReturnValueOnce` are removed after a matching function call anyway.
 
 Thanks to [@fkloes](https://github.com/fkloes).
-
-#### Supports multiple args with partial argument matching:
-```javascript
-when(fn).calledWith(1, true).mockReturnValue('yay!')
-
-expect(fn(1, true)).toEqual('yay!')
-expect(fn(1, true, 'foo')).toEqual('yay!')
-```
 
 #### Supports training for single calls
 ```javascript
@@ -259,6 +253,7 @@ Thanks to [@roaclark](https://github.com/roaclark).
 ### Contributors (in order of contribution)
 * [@timkindberg](https://github.com/timkindberg/) (original author)
 * [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)
+> Many thanks to @jonasholtkamp. He forked this repo when I was inactive and stewarded several key features and bug fixes!
 * [@fkloes](https://github.com/fkloes)
 * [@danielhusar](https://github.com/danielhusar)
 * [@idan-at](https://github.com/idan-at)
