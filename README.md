@@ -11,22 +11,40 @@ Specify dynamic return values for specifically matched mocked function arguments
 ThoughtWorks says:
 > jest-when is a lightweight JavaScript library that complements Jest by matching mock function call arguments. Jest is a great tool for testing the stack; jest-when allows you to expect specific arguments for mock functions which enables you to write more robust unit tests of modules with many dependencies. It's easy to use and provides great support for multiple matchers, which is why our teams have made jest-when their default choice for mocking in this space.
 
-### Features
+### Introduction
 `jest-when` allows you to use a set of the original
 [Jest mock functions](https://facebook.github.io/jest/docs/en/mock-function-api) in order to train
 your mocks only based on parameters your mocked function is called with.
 
-An example statement would be as follows:
+#### An Example
+
+So in jest if you want to mock a return value you would do:
+
+```javascript
+const fn = jest.fn()
+fn.mockReturnValue('yay!')
+```
+
+But that will return "yay!" regardless of what arguments are send to the `fn`. If you want to change the return value
+based on the arguments, you have to use `mockImplementation` and it can be a bit cumbersome.
+
+`jest-when` makes this easy and fun!
 
 ```javascript
 when(fn).calledWith(1).mockReturnValue('yay!')
 ```
 
-The trained mock function `fn` will now behave as follows -- assumed no other trainings took place:
+Now, the mock function `fn` will behave as follows&mdash;assuming no other trainings took place:
 * return `yay!` if called with `1` _as the only parameter_
 * return `undefined` if called with _any parameters other_ than `1`
 
-For extended usage see the examples below.
+So the steps are:
+```javascript
+const fn = jest.fn()                    // 1) Start with any normal jest mock function
+when(fn)                                // 2) Wrap it with when()
+  .calledWith(/* any matchers here */)  // 3) Add your matchers with calledWith()
+  .mockReturnValue(/* some value */)    // 4) Then use any of the normal set of jest mock functions
+```
 
 The supported set of mock functions is:
 * `mockReturnValue`
@@ -38,7 +56,25 @@ The supported set of mock functions is:
 * `mockImplementation`
 * `mockImplementationOnce`
 
-### Usage
+For extended usage see the examples below.
+
+### Features
+
+- Match literals: `1`, `true`, `"string"`, `/regex/`, `null`, etc
+- Match objects or arrays: `{ foo: true }`, `[1, 2, 3]`
+- Match [asymmetric matchers](https://jestjs.io/docs/en/expect#expectanything): expect.any(), expect.objectContaining(), expect.stringMatching(), etc
+- Setup multiple matched calls with differing returns
+- Chaining of mock trainings
+- Replacement of mock trainings
+- One-time trainings, removed after they are matched
+- Promises, resolved or rejected
+- Can also wrap jest.spyOn functions with when()
+- Supports function matchers
+- Setup a default behavior
+- Supports resetting mocks between tests
+- Supports verifying all whenMocks were called
+
+### Usage Examples
 
 #### Installation
 ```bash
@@ -85,7 +121,7 @@ expect(fn(1)).toEqual('yay!')
 when(fn).calledWith(1).mockReturnValue('nay!')
 expect(fn(1)).toEqual('nay!')
 ```
-This replacement of the training does only happen for mock functions _not_ ending in `*Once`.
+This replacement of the training only happens for mock functions _not_ ending in `*Once`.
 Trainings like `mockReturnValueOnce` are removed after a matching function call anyway.
 
 Thanks to [@fkloes](https://github.com/fkloes).
@@ -132,7 +168,10 @@ const returnValue = theInstance.theMethod(1);
 expect(returnValue).toBe('mock');
 ```
 
-#### Supports jest matchers:
+#### Supports jest [asymmetric matchers](https://jestjs.io/docs/en/expect#expectanything):
+
+Use all the same asymmetric matchers available to the `toEqual()` assertion
+
 ```javascript
 when(fn).calledWith(
   expect.anything(),
@@ -142,6 +181,20 @@ when(fn).calledWith(
 
 const result = fn('whatever', 100, [true, false])
 expect(result).toEqual('yay!')
+```
+
+#### Supports function matchers:
+```javascript
+const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
+const numberDivisibleBy3 = (arg) => arg % 3 === 0
+
+when(fn)
+.calledWith(allValuesTrue, numberDivisibleBy3)
+.mockReturnValue('yay!')
+
+expect(fn({ foo: true, bar: true }, 9)).toEqual('yay!')
+expect(fn({ foo: true, bar: false }, 9)).toEqual(undefined)
+expect(fn({ foo: true, bar: false }, 13)).toEqual(undefined)
 ```
 
 #### Supports compound declarations:
