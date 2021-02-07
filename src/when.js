@@ -21,7 +21,17 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
 
   // Assert the match for better messaging during a failure
   if (expectCall) {
-    expect(arg).toEqual(matcher)
+    if (typeof matcher === 'function') {
+      const isMatch = matcher(arg)
+      const msg = `Failed function matcher within expectCalledWith: ${matcher.name}(${JSON.stringify(arg)}) did not return true\n\n\n...rest of the stack...`
+      assert.equal(isMatch, true, msg)
+    } else {
+      expect(arg).toEqual(matcher)
+    }
+  }
+
+  if (typeof matcher === 'function') {
+    return matcher(arg)
   }
 
   return utils.equals(arg, matcher)

@@ -185,6 +185,36 @@ describe('When', () => {
       expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
+    it('works with custom function args', () => {
+      const fn = jest.fn()
+
+      const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
+      const numberDivisibleBy3 = (arg) => arg % 3 === 0
+
+      when(fn)
+        .calledWith(allValuesTrue, numberDivisibleBy3)
+        .mockReturnValue('x')
+
+      expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
+      expect(fn({ foo: true, bar: false }, 9)).toEqual(undefined)
+      expect(fn({ foo: true, bar: false }, 13)).toEqual(undefined)
+    })
+
+    it('expects with custom function args', () => {
+      const fn = jest.fn()
+
+      const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
+      const numberDivisibleBy3 = (arg) => arg % 3 === 0
+
+      when(fn)
+        .expectCalledWith(allValuesTrue, numberDivisibleBy3)
+        .mockReturnValue('x')
+
+      expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
+      expect(() => fn({ foo: false, bar: true }, 9)).toThrow(/Failed function matcher within expectCalledWith: allValuesTrue\(\{"foo":false,"bar":true\}\) did not return true/)
+      expect(() => fn({ foo: true, bar: true }, 13)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(13\) did not return true/)
+    })
+
     it('supports compound when declarations', () => {
       const fn = jest.fn()
 
