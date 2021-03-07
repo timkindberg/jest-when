@@ -184,9 +184,16 @@ expect(result).toEqual('yay!')
 ```
 
 #### Supports function matchers:
+
+Just wrap any regular function (cannot be a jest mock or spy!) with `when`.
+
+The function will receive the arg and will be considered a match if the function returns true.
+
+It works with both calledWith and expectCalledWith.
+
 ```javascript
-const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
-const numberDivisibleBy3 = (arg) => arg % 3 === 0
+const allValuesTrue = when((arg) => Object.values(arg).every(Boolean))
+const numberDivisibleBy3 = when((arg) => arg % 3 === 0)
 
 when(fn)
 .calledWith(allValuesTrue, numberDivisibleBy3)
