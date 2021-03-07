@@ -19,9 +19,11 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   logger.debug(`   matcher: ${String(matcher)}`)
   logger.debug(`   arg: ${String(arg)}`)
 
+  const isFunctionMatcher = typeof matcher === 'function' && matcher._isFunctionMatcher
+
   // Assert the match for better messaging during a failure
   if (expectCall) {
-    if (typeof matcher === 'function') {
+    if (isFunctionMatcher) {
       const isMatch = matcher(arg)
       const msg = `Failed function matcher within expectCalledWith: ${matcher.name}(${JSON.stringify(arg)}) did not return true\n\n\n...rest of the stack...`
       assert.equal(isMatch, true, msg)
@@ -30,7 +32,7 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
     }
   }
 
-  if (typeof matcher === 'function') {
+  if (isFunctionMatcher) {
     return matcher(arg)
   }
 
@@ -124,17 +126,30 @@ class WhenMock {
 }
 
 const when = (fn) => {
-  if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__
-  const whenMock = new WhenMock(fn)
-  registry.add(fn)
-  fn._origMockReset = fn.mockReset
-  fn.mockReset = () => {
-    resetWhenMocksOnFn(fn)
-    fn.mockReset = fn._origMockReset
-    fn._origMockReset = undefined
-    fn.mockReset()
+  // This bit is for when you use `when` to make a WhenMock
+  // when(fn) <-- This one
+  //     .calledWith(when(numberIsGreaterThanZero)) <-- Not this one
+  if (fn._isMockFunction) {
+    if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__
+    const whenMock = new WhenMock(fn)
+    registry.add(fn)
+    fn._origMockReset = fn.mockReset
+    fn.mockReset = () => {
+      resetWhenMocksOnFn(fn)
+      fn.mockReset = fn._origMockReset
+      fn._origMockReset = undefined
+      fn.mockReset()
+    }
+    return whenMock
   }
-  return whenMock
+
+  // This bit is for when you use `when` as a function matcher
+  // when(fn) <-- Not this one
+  //     .calledWith(when(numberIsGreaterThanZero)) <-- This one
+  if (typeof fn === 'function') {
+    fn._isFunctionMatcher = true
+    return fn
+  }
 }
 
 const resetAllWhenMocks = () => {

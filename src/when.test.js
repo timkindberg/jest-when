@@ -158,17 +158,19 @@ describe('When', () => {
       const fn = jest.fn()
 
       const anyString = expect.any(String)
+      const myFunction = function () {}
 
       when(fn)
-        .calledWith(1, 'foo', true, anyString, undefined)
+        .calledWith(1, 'foo', true, anyString, undefined, myFunction)
         .mockReturnValue('x')
 
-      expect(fn(1, 'foo', true, 'whatever', undefined)).toEqual('x')
+      expect(fn(1, 'foo', true, 'whatever', undefined, myFunction)).toEqual('x')
       expect(spyEquals).toBeCalledWith(1, 1)
       expect(spyEquals).toBeCalledWith('foo', 'foo')
       expect(spyEquals).toBeCalledWith(true, true)
       expect(spyEquals).toBeCalledWith('whatever', anyString)
       expect(spyEquals).toBeCalledWith(undefined, undefined)
+      expect(spyEquals).toBeCalledWith(myFunction, myFunction)
     })
 
     it('only matches exact sets of args, too little or too many args do not trigger mock return', () => {
@@ -192,7 +194,7 @@ describe('When', () => {
       const numberDivisibleBy3 = (arg) => arg % 3 === 0
 
       when(fn)
-        .calledWith(allValuesTrue, numberDivisibleBy3)
+        .calledWith(when(allValuesTrue), when(numberDivisibleBy3))
         .mockReturnValue('x')
 
       expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
@@ -207,12 +209,27 @@ describe('When', () => {
       const numberDivisibleBy3 = (arg) => arg % 3 === 0
 
       when(fn)
-        .expectCalledWith(allValuesTrue, numberDivisibleBy3)
+        .expectCalledWith(when(allValuesTrue), when(numberDivisibleBy3))
         .mockReturnValue('x')
 
       expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
       expect(() => fn({ foo: false, bar: true }, 9)).toThrow(/Failed function matcher within expectCalledWith: allValuesTrue\(\{"foo":false,"bar":true\}\) did not return true/)
       expect(() => fn({ foo: true, bar: true }, 13)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(13\) did not return true/)
+    })
+
+    it('does not call regular functions as function matchers', () => {
+      const fn = jest.fn()
+
+      const doNotCallMeBro = () => {
+        throw new Error('BOOM')
+      }
+
+      when(fn)
+        .expectCalledWith(doNotCallMeBro)
+        .mockReturnValue('x')
+
+      expect(fn(doNotCallMeBro)).toEqual('x')
+      expect(() => fn(doNotCallMeBro)).not.toThrow()
     })
 
     it('supports compound when declarations', () => {
