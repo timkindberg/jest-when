@@ -4,7 +4,7 @@ const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*${expect}.*\\nReceived.*${actual}`)
 
 describe('When', () => {
-  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks, verifyAllWhenMocksCalled
+  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks, verifyAllWhenMocksCalled, verifyExpectedMocksCalled
 
   beforeEach(() => {
     spyEquals = jest.spyOn(require('expect/build/jasmineUtils'), 'equals')
@@ -23,6 +23,7 @@ describe('When', () => {
     when = require('./when').when
     resetAllWhenMocks = require('./when').resetAllWhenMocks
     verifyAllWhenMocksCalled = require('./when').verifyAllWhenMocksCalled
+    verifyExpectedMocksCalled = require('./when').verifyExpectedMocksCalled
     WhenMock = require('./when').WhenMock
   })
 
@@ -82,62 +83,148 @@ describe('When', () => {
       expect(fn(1)).toEqual('a')
     })
 
-    it('allows checking that all mocks were called', () => {
-      const fn1 = jest.fn()
-      const fn2 = jest.fn()
+    describe('verifying expected mocks', () => {
+      describe('with expectCallShouldAssert = false', () => {
+        beforeEach(() => {
+          when.expectCallShouldAssert = false
+        })
 
-      when(fn1).expectCalledWith(1).mockReturnValue('z')
-      when(fn2).expectCalledWith(1).mockReturnValueOnce('x')
-      when(fn2).expectCalledWith(1).mockReturnValueOnce('y')
-      when(fn2).expectCalledWith(1).mockReturnValue('z')
+        afterEach(() => {
+          when.expectCallShouldAssert = true
+        })
 
-      fn1(1)
-      fn2(1)
-      fn2(1)
-      fn2(1)
+        it('allows checking that configured mocks were called', () => {
+          const fn1 = jest.fn()
+          const fn2 = jest.fn()
 
-      expect(verifyAllWhenMocksCalled).not.toThrow()
+          when(fn1).expectCalledWith(1).mockReturnValue('z')
+          when(fn2).expectCalledWith(1).mockReturnValueOnce('x')
+          when(fn2).expectCalledWith(1).mockReturnValueOnce('y')
+          when(fn2).expectCalledWith(1).mockReturnValue('z')
+
+          fn1(1)
+          fn2(1)
+          fn2(1)
+          fn2(1)
+
+          expect(verifyExpectedMocksCalled).not.toThrow()
+        })
+
+        it('allows checking that explicitly expected mocks were called', () => {
+          const fn1 = jest.fn()
+          const fn2 = jest.fn()
+
+          when(fn1).expectCalledWith(1).mockReturnValue('x')
+          when(fn2).expectCalledWith(2).mockReturnValue('y')
+
+          fn1(1)
+          fn2(2)
+
+          expect(verifyExpectedMocksCalled).not.toThrow()
+        })
+
+        it('fails verification check if expected mocks were not called', () => {
+          const fn1 = jest.fn()
+          const fn2 = jest.fn()
+
+          when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+          when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+          when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+          when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+
+          fn1(1)
+          fn2(1)
+
+          let caughtErr
+
+          try {
+            verifyExpectedMocksCalled()
+          } catch (e) {
+            caughtErr = e
+          }
+
+          expect(caughtErr.expected).toEqual('called mocks: 4')
+          expect(caughtErr.actual).toEqual('called mocks: 2')
+          expect(caughtErr.message).toMatch(/Failed verifyExpectedMocksCalled: 2 not called/)
+        })
+
+        it('does not fail verification check if unexpected mocks were not called', () => {
+          const fn1 = jest.fn()
+          const fn2 = jest.fn()
+
+          when(fn1).expectCalledWith(1).mockReturnValue('x')
+          when(fn1).expectCalledWith(1).mockReturnValue('y')
+          when(fn2).expectCalledWith('another value').mockReturnValue('z')
+          when(fn2).calledWith('never').mockReturnValueOnce('nothing')
+          when(fn2).calledWith('never').mockReturnValue('nothing')
+
+          fn1(1)
+          fn2(1)
+          fn2('another value')
+
+          expect(verifyExpectedMocksCalled).not.toThrow()
+        })
+      })
     })
 
-    it('fails verification check if all mocks were not called', () => {
-      const fn1 = jest.fn()
-      const fn2 = jest.fn()
+    describe('verifying all configured mocks', () => {
+      it('allows checking that configured mocks were called', () => {
+        const fn1 = jest.fn()
+        const fn2 = jest.fn()
 
-      when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+        when(fn1).expectCalledWith(1).mockReturnValue('z')
+        when(fn2).expectCalledWith(1).mockReturnValueOnce('x')
+        when(fn2).expectCalledWith(1).mockReturnValueOnce('y')
+        when(fn2).expectCalledWith(1).mockReturnValue('z')
 
-      fn1(1)
-      fn2(1)
+        fn1(1)
+        fn2(1)
+        fn2(1)
+        fn2(1)
 
-      let caughtErr
+        expect(verifyAllWhenMocksCalled).not.toThrow()
+      })
 
-      try {
-        verifyAllWhenMocksCalled()
-      } catch (e) {
-        caughtErr = e
-      }
+      it('fails verification check if all mocks were not called', () => {
+        const fn1 = jest.fn()
+        const fn2 = jest.fn()
 
-      expect(caughtErr.expected).toEqual('called mocks: 4')
-      expect(caughtErr.actual).toEqual('called mocks: 2')
-      expect(caughtErr.message).toMatch(/Failed verifyAllWhenMocksCalled: 2 not called/)
-    })
+        when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
 
-    it('fails verification check if all mocks were not called with line numbers', () => {
-      const fn1 = jest.fn()
-      const fn2 = jest.fn()
+        fn1(1)
+        fn2(1)
 
-      when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
-      when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+        let caughtErr
 
-      fn1(1)
-      fn2(1)
+        try {
+          verifyAllWhenMocksCalled()
+        } catch (e) {
+          caughtErr = e
+        }
 
-      // Should be two call lines printed, hence the {2} at the end of the regex
-      expect(verifyAllWhenMocksCalled).toThrow(/(src(?:\\|\/)when\.test\.js:\d{3}(.|\s)*){2}/)
+        expect(caughtErr.expected).toEqual('called mocks: 4')
+        expect(caughtErr.actual).toEqual('called mocks: 2')
+        expect(caughtErr.message).toMatch(/Failed verifyAllWhenMocksCalled: 2 not called/)
+      })
+
+      it('fails verification check if all mocks were not called with line numbers', () => {
+        const fn1 = jest.fn()
+        const fn2 = jest.fn()
+
+        when(fn1).expectCalledWith(expect.anything()).mockReturnValue('z')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('x')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValueOnce('y')
+        when(fn2).expectCalledWith(expect.anything()).mockReturnValue('z')
+
+        fn1(1)
+        fn2(1)
+
+        // Should be two call lines printed, hence the {2} at the end of the regex
+        expect(verifyAllWhenMocksCalled).toThrow(/(src(?:\\|\/)when\.test\.js:\d{3}(.|\s)*){2}/)
+      })
     })
   })
 
