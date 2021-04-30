@@ -187,49 +187,176 @@ describe('When', () => {
       expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
-    it('works with custom function args', () => {
-      const fn = jest.fn()
+    describe('function matcher', () => {
+      it('works with custom function args', () => {
+        const fn = jest.fn()
 
-      const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
-      const numberDivisibleBy3 = (arg) => arg % 3 === 0
+        const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
+        const numberDivisibleBy3 = (arg) => arg % 3 === 0
 
-      when(fn)
-        .calledWith(when(allValuesTrue), when(numberDivisibleBy3))
-        .mockReturnValue('x')
+        when(fn)
+          .calledWith(when(allValuesTrue), when(numberDivisibleBy3))
+          .mockReturnValue('x')
 
-      expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
-      expect(fn({ foo: true, bar: false }, 9)).toEqual(undefined)
-      expect(fn({ foo: true, bar: false }, 13)).toEqual(undefined)
+        expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
+        expect(fn({ foo: true, bar: false }, 9)).toEqual(undefined)
+        expect(fn({ foo: true, bar: false }, 13)).toEqual(undefined)
+      })
+
+      it('custom function args get access to the "equals" jasmine util', () => {
+        const fn = jest.fn()
+
+        const arrMatch = (arg, equals) => equals(arg, [1, 2, 3])
+
+        when(fn)
+          .calledWith(when(arrMatch))
+          .mockReturnValue('x')
+
+        expect(fn([1, 2, 3])).toEqual('x')
+      })
+
+      it('expects with custom function args', () => {
+        const fn = jest.fn()
+
+        const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
+        const numberDivisibleBy3 = (arg) => arg % 3 === 0
+
+        when(fn)
+          .expectCalledWith(when(allValuesTrue), when(numberDivisibleBy3))
+          .mockReturnValue('x')
+
+        expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
+        expect(() => fn({ foo: false, bar: true }, 9)).toThrow(/Failed function matcher within expectCalledWith: allValuesTrue\(\{"foo":false,"bar":true\}\) did not return true/)
+        expect(() => fn({ foo: true, bar: true }, 13)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(13\) did not return true/)
+      })
+
+      it('does not call regular functions as function matchers', () => {
+        const fn = jest.fn()
+
+        const doNotCallMeBro = () => {
+          throw new Error('BOOM')
+        }
+
+        when(fn)
+          .expectCalledWith(doNotCallMeBro)
+          .mockReturnValue('x')
+
+        expect(fn(doNotCallMeBro)).toEqual('x')
+        expect(() => fn(doNotCallMeBro)).not.toThrow()
+      })
     })
 
-    it('expects with custom function args', () => {
-      const fn = jest.fn()
+    describe('when.allArgs', () => {
+      it('throws an error if you try to use other matches with it', () => {
+        const fn = jest.fn()
 
-      const allValuesTrue = (arg) => Object.values(arg).every(Boolean)
-      const numberDivisibleBy3 = (arg) => arg % 3 === 0
+        when(fn)
+          .calledWith(when.allArgs(() => true), 1, 2, 3)
+          .mockReturnValue('x')
 
-      when(fn)
-        .expectCalledWith(when(allValuesTrue), when(numberDivisibleBy3))
-        .mockReturnValue('x')
+        expect(() => fn(3, 6, 9)).toThrow(/When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs./)
+      })
 
-      expect(fn({ foo: true, bar: true }, 9)).toEqual('x')
-      expect(() => fn({ foo: false, bar: true }, 9)).toThrow(/Failed function matcher within expectCalledWith: allValuesTrue\(\{"foo":false,"bar":true\}\) did not return true/)
-      expect(() => fn({ foo: true, bar: true }, 13)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(13\) did not return true/)
-    })
+      it('allows matching against all the args at once with when.allArgs', () => {
+        const fn = jest.fn()
 
-    it('does not call regular functions as function matchers', () => {
-      const fn = jest.fn()
+        const numberDivisibleBy3 = (args) => args.every(arg => arg % 3 === 0)
 
-      const doNotCallMeBro = () => {
-        throw new Error('BOOM')
-      }
+        when(fn)
+          .calledWith(when.allArgs(numberDivisibleBy3))
+          .mockReturnValue('x')
 
-      when(fn)
-        .expectCalledWith(doNotCallMeBro)
-        .mockReturnValue('x')
+        expect(fn(3, 6, 9)).toEqual('x')
+        expect(fn(3, 6, 10)).toBeUndefined()
+        expect(fn(1, 2, 3)).toBeUndefined()
+      })
 
-      expect(fn(doNotCallMeBro)).toEqual('x')
-      expect(() => fn(doNotCallMeBro)).not.toThrow()
+      it('all args are numbers example', () => {
+        const fn = jest.fn()
+        const areNumbers = (args, equals) => args.every(arg => equals(arg, expect.any(Number)))
+
+        when(fn)
+          .calledWith(when.allArgs(areNumbers))
+          .mockReturnValue('x')
+
+        expect(fn(3, 6, 9)).toEqual('x')
+        expect(fn(3, 666)).toEqual('x')
+        expect(fn(-100, 2, 3.234234, 234, 90e3)).toEqual('x')
+        expect(fn(123, 'not a number')).toBeUndefined()
+      })
+
+      it('single arg match example', () => {
+        const fn = jest.fn()
+        const argAtIndex = (index, matcher) => when.allArgs((args, equals) => equals(args[index], matcher))
+
+        when(fn)
+          .calledWith(argAtIndex(0, expect.any(Number)))
+          .mockReturnValue('x')
+
+        expect(fn(1, 2, 3)).toEqual('x')
+        expect(fn(-123123, 'string', false, null)).toEqual('x')
+        expect(fn('not a string', 2, 3)).toBeUndefined()
+      })
+
+      it('partial match example', () => {
+        const fn = jest.fn()
+        const partialArgs = (...argsToMatch) => when.allArgs((args, equals) => equals(args, expect.arrayContaining(argsToMatch)))
+
+        when(fn)
+          .calledWith(partialArgs(1, 2, 3))
+          .mockReturnValue('x')
+
+        expect(fn(1, 2, 3)).toEqual('x')
+        expect(fn(1, 2, 3, 4, 5, 6)).toEqual('x')
+        expect(fn(1, 2)).toBeUndefined()
+        expect(fn(1, 2, 4)).toBeUndefined()
+      })
+
+      it('react use case from github', () => {
+        // SEE: https://github.com/timkindberg/jest-when/issues/66
+
+        const SomeChild = jest.fn()
+
+        when(SomeChild)
+          .calledWith({ xyz: '123' })
+          .mockReturnValue('hello world')
+
+        const propsOf = propsToMatch => when.allArgs(([props, refOrContext], equals) => equals(props, propsToMatch))
+
+        when(SomeChild)
+          .calledWith(propsOf({ xyz: '123' }))
+          .mockReturnValue('hello world')
+
+        expect(SomeChild({ xyz: '123' })).toEqual('hello world')
+      })
+
+      it('allows matching against all the args at once with when.allArgs using expect matchers', () => {
+        const fn = jest.fn()
+
+        when(fn)
+          .calledWith(when.allArgs(expect.arrayContaining([42])))
+          .mockReturnValue('x')
+          .calledWith(when.allArgs(expect.arrayContaining([expect.objectContaining({ foo: true })])))
+          .mockReturnValue('y')
+
+        expect(fn(3, 6, 42)).toEqual('x')
+        expect(fn({ foo: true, bar: true }, 'a', 'b', 'c')).toEqual('y')
+        expect(fn(1, 2, 3)).toBeUndefined()
+      })
+
+      it('allows asserting against all the args at once with when.allArgs', () => {
+        const fn = jest.fn()
+
+        const numberDivisibleBy3 = (args) => args.every(arg => arg % 3 === 0)
+
+        when(fn)
+          .expectCalledWith(when.allArgs(numberDivisibleBy3))
+          .mockReturnValue('x')
+
+        expect(fn(3, 6, 9)).toEqual('x')
+        expect(() => fn(3, 6, 10)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(\[3,6,10]\) did not return true/)
+        expect(() => fn(1, 2, 3)).toThrow(/Failed function matcher within expectCalledWith: numberDivisibleBy3\(\[1,2,3]\) did not return true/)
+      })
     })
 
     it('supports compound when declarations', () => {
