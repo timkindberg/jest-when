@@ -33,7 +33,7 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   }
 
   if (isFunctionMatcher) {
-    return matcher(arg)
+    return matcher(arg, utils.equals)
   }
 
   return utils.equals(arg, matcher)
@@ -80,9 +80,16 @@ class WhenMock {
           // Do not let a once mock match more than once
           if (once && called) continue
 
-          const isMatch =
-            args.length === matchers.length &&
-            matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          let isMatch = false
+
+          if (matchers[0]._isAllArgsFunctionMatcher) {
+            if (matchers.length > 1) throw new Error('When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs.')
+            isMatch = checkArgumentMatchers(expectCall, [args])(true, matchers[0], 0)
+          } else {
+            isMatch =
+              args.length === matchers.length &&
+              matchers.reduce(checkArgumentMatchers(expectCall, args), true)
+          }
 
           if (isMatch) {
             this.callMocks[i].called = true
@@ -150,6 +157,12 @@ const when = (fn) => {
     fn._isFunctionMatcher = true
     return fn
   }
+}
+
+when.allArgs = (fn) => {
+  fn._isFunctionMatcher = true
+  fn._isAllArgsFunctionMatcher = true
+  return fn
 }
 
 const resetAllWhenMocks = () => {

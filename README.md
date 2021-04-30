@@ -211,6 +211,56 @@ expect(fn(4)).toEqual('way!')
 expect(fn(5)).toEqual(undefined)
 ```
 
+#### Supports matching or asserting against all of the arguments together using `when.allArgs`:
+
+Pass a single special matcher, `when.allArgs`, if you'd like to handle all of the arguments 
+with one function matcher. The function will receive all of the arguments as an array and you 
+are responsible for returning true if they are a match, or false if not. The function also is
+provided with the powerful `equals` utility from Jasmine.
+
+
+This allows some convenient patterns:
+- Less verbose for variable args where all need to be of a certain type or match (e.g. all numbers)
+- Can be useful for partial matching, because you can assert just the first arg for example and ignore the rest
+
+E.g. All args should be numbers:
+```javascript
+const areNumbers = (args, equals) => args.every(arg => equals(arg, expect.any(Number)))
+when(fn).calledWith(when.allArgs(areNumbers)).mockReturnValue('yay!')
+
+expect(fn(3, 6, 9)).toEqual('yay!')
+expect(fn(3, 666)).toEqual('yay!')
+expect(fn(-100, 2, 3.234234, 234, 90e3)).toEqual('yay!')
+expect(fn(123, 'not a number')).toBeUndefined()
+```
+
+E.g. Single arg match:
+```javascript
+const argAtIndex = (index, matcher) => when.allArgs((args, equals) => equals(args[index], matcher))
+
+when(fn).calledWith(argAtIndex(0, expect.any(Number))).mockReturnValue('yay!')
+
+expect(fn(3, 6, 9)).toEqual('yay!')
+expect(fn(3, 666)).toEqual('yay!')
+expect(fn(-100, 2, 3.234234, 234, 90e3)).toEqual('yay!')
+expect(fn(123, 'not a number')).toBeUndefined()
+```
+
+E.g. Partial match, only first defined matching args matter:
+```javascript
+const fn = jest.fn()
+const partialArgs = (...argsToMatch) => when.allArgs((args, equals) => equals(args, expect.arrayContaining(argsToMatch)))
+
+when(fn)
+  .calledWith(partialArgs(1, 2, 3))
+  .mockReturnValue('x')
+
+expect(fn(1, 2, 3)).toEqual('x')
+expect(fn(1, 2, 3, 4, 5, 6)).toEqual('x')
+expect(fn(1, 2)).toBeUndefined()
+expect(fn(1, 2, 4)).toBeUndefined()
+```
+
 #### Assert the args:
 
 Use `expectCalledWith` instead to run an assertion that the `fn` was called with the provided
