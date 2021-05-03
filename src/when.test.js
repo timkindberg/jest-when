@@ -187,6 +187,16 @@ describe('When', () => {
       expect(fn(1, 'foo', true, 'whatever', undefined, 'oops')).toEqual(undefined)
     })
 
+    it('able to call with null', () => {
+      const fn = jest.fn()
+
+      when(fn)
+        .calledWith(null)
+        .mockReturnValue('x')
+
+      expect(fn(null)).toEqual('x')
+    })
+
     describe('function matcher', () => {
       it('works with custom function args', () => {
         const fn = jest.fn()

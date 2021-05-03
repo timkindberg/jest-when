@@ -82,7 +82,7 @@ class WhenMock {
 
           let isMatch = false
 
-          if (matchers[0]._isAllArgsFunctionMatcher) {
+          if (matchers && matchers[0] && matchers[0]._isAllArgsFunctionMatcher) {
             if (matchers.length > 1) throw new Error('When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs.')
             isMatch = checkArgumentMatchers(expectCall, [args])(true, matchers[0], 0)
           } else {
