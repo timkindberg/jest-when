@@ -22,7 +22,7 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   const isFunctionMatcher = typeof matcher === 'function' && matcher._isFunctionMatcher
 
   // Assert the match for better messaging during a failure
-  if (expectCall) {
+  if (expectCall && when.expectCallShouldAssert) {
     if (isFunctionMatcher) {
       const isMatch = matcher(arg)
       const msg = `Failed function matcher within expectCalledWith: ${matcher.name}(${JSON.stringify(arg)}) did not return true\n\n\n...rest of the stack...`
@@ -176,7 +176,7 @@ function resetWhenMocksOnFn (fn) {
   registry.delete(fn)
 }
 
-const verifyAllWhenMocksCalled = () => {
+function getCallMocks () {
   const [allMocks, calledMocks, uncalledMocks] = Array.from(registry).reduce((acc, fn) => {
     const mocks = fn.__whenMock__.callMocks
     const [calledMocks, uncalledMocks] = mocks.reduce((memo, mock) => {
@@ -185,6 +185,12 @@ const verifyAllWhenMocksCalled = () => {
     }, [[], []])
     return [[...acc[0], ...mocks], [...acc[1], ...calledMocks], [...acc[2], ...uncalledMocks]]
   }, [[], [], []])
+
+  return { allMocks, calledMocks, uncalledMocks }
+}
+
+const verifyAllWhenMocksCalled = () => {
+  const { allMocks, calledMocks, uncalledMocks } = getCallMocks()
 
   const callLines = uncalledMocks
     .filter(m => Boolean(m.callLine))
@@ -196,12 +202,37 @@ const verifyAllWhenMocksCalled = () => {
   assert.equal(`called mocks: ${calledMocks.length}`, `called mocks: ${allMocks.length}`, msg)
 }
 
+const verifyExpectedMocksCalled = () => {
+  const { allMocks, calledMocks, uncalledMocks } = getCallMocks()
+
+  const expectedMocks = allMocks
+    .filter(m => m.expectCall)
+
+  const calledExpectedMocks = calledMocks
+    .filter(m => m.expectCall)
+
+  const uncalledExpectedMocks = uncalledMocks
+    .filter(m => m.expectCall)
+
+  const callLines = uncalledExpectedMocks
+    .filter(m => Boolean(m.callLine))
+    .map(m => `\n  ${String(m.callLine).trim()}`)
+    .join('')
+
+  const msg = `Failed verifyExpectedMocksCalled: ${uncalledExpectedMocks.length} not called at:${callLines}\n\n\n...rest of the stack...`
+
+  assert.equal(`called mocks: ${calledExpectedMocks.length}`, `called mocks: ${expectedMocks.length}`, msg)
+}
+
+when.expectCallShouldAssert = true
 when.resetAllWhenMocks = resetAllWhenMocks
 when.verifyAllWhenMocksCalled = verifyAllWhenMocksCalled
+when.verifyExpectedMocksCalled = verifyExpectedMocksCalled
 
 module.exports = {
   when,
   resetAllWhenMocks,
   verifyAllWhenMocksCalled,
+  verifyExpectedMocksCalled,
   WhenMock
 }
