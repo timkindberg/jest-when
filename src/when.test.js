@@ -835,5 +835,30 @@ describe('When', () => {
       const returnValue = theInstance.theMethod(1)
       expect(returnValue).toBe('mock')
     })
+
+    it('keeps default function implementation when not matched', () => {
+      class TheClass {
+        fn () {
+          return 'real'
+        }
+      }
+      const instance = new TheClass()
+      const spy = jest.spyOn(instance, 'fn')
+      when(spy)
+        .calledWith(1)
+        .mockReturnValue('mock')
+      expect(instance.fn(2)).toBe('real')
+    })
+
+    it('keeps default mock implementation when not matched', () => {
+      const fn = jest.fn(() => {
+        return 'real'
+      })
+      when(fn)
+        .calledWith(1)
+        .mockReturnValue('mock')
+      expect(fn(1)).toBe('mock')
+      expect(fn(2)).toBe('real')
+    })
   })
 })
