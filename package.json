@@ -23,7 +23,7 @@
     "bunyan": "^1.8.12"
   },
   "peerDependencies": {
-    "jest": ">= 26"
+    "jest": ">= 25"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^2.0.0",
