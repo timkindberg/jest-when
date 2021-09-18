@@ -20,7 +20,7 @@
     "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
   ],
   "dependencies": {
-    "bunyan": "^1.8.12",
+    "diary": "^0.2.2",
     "expect": "^24.8.0"
   },
   "devDependencies": {
