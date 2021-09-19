@@ -88,8 +88,9 @@ class WhenMock {
             return mockImplementation(...args)
           }
         }
-
-        return defaultImplementation ? defaultImplementation(...args) : undefined
+        return defaultImplementation ? defaultImplementation(...args)
+          : (typeof fn.__whenMock__._origMock === 'function'
+            ? fn.__whenMock__._origMock(...args) : undefined)
       })
 
       return {
