@@ -1,6 +1,6 @@
 {
   "name": "jest-when",
-  "version": "3.3.1",
+  "version": "3.4.0",
   "description": "An extension lib for jest",
   "license": "MIT",
   "main": "src/when.js",
@@ -19,8 +19,7 @@
     "Tim Kindberg <timkindberg@gmail.com>",
     "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
   ],
-  "dependencies": {
-  },
+  "dependencies": {},
   "peerDependencies": {
     "jest": ">= 25"
   },
