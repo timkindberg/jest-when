@@ -20,7 +20,9 @@
     "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
   ],
   "dependencies": {
-    "expect": "^24.8.0"
+  },
+  "peerDependencies": {
+    "jest": ">= 25"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^2.0.0",
@@ -33,7 +35,7 @@
     "eslint-plugin-node": "^6.0.1",
     "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-standard": "^3.1.0",
-    "jest": "^24.8.0",
+    "jest": "^27.0.0",
     "np": "^7.3.0",
     "pre-commit": "^1.2.2"
   },
