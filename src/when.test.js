@@ -740,7 +740,7 @@ describe('When', () => {
       expect(fn('foo2')).toEqual('newDefault')
     })
 
-    it('allows defining the default NOT in a chained case', () => {
+    it('allows defining the default NOT in a chained case', async () => {
       const fn = jest.fn()
 
       when(fn).mockRejectedValue(false)
@@ -749,7 +749,8 @@ describe('When', () => {
         .calledWith(expect.anything())
         .mockResolvedValue(true)
 
-      expect(fn()).rejects.toEqual(false)
+      await expect(fn('anything')).resolves.toEqual(true)
+      await expect(fn()).rejects.toEqual(false)
     })
 
     it('allows overriding the default NOT in a chained case', () => {
@@ -771,8 +772,7 @@ describe('When', () => {
       when(fn)
         .mockReturnValue('default')
 
-      expect(fn).toThrow('Unintended use: Only use default value in combination with .calledWith(..), ' +
-        'or use standard mocking without jest-when.')
+      expect(fn()).toEqual('default')
     })
 
     it('will not throw on old non-throwing case', () => {
@@ -843,6 +843,16 @@ describe('When', () => {
         .mockReturnValue('mock')
       expect(fn(1)).toBe('mock')
       expect(fn(2)).toBe('real')
+    })
+
+    it('keeps default mockReturnValue when not matched', () => {
+      const fn = jest.fn()
+
+      when(fn).calledWith(1).mockReturnValue('a')
+      when(fn).mockReturnValue('b')
+
+      expect(fn(1)).toEqual('a') // fails and will still return 'b' (as before my change)
+      expect(fn(2)).toEqual('b')
     })
   })
 })

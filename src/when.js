@@ -32,23 +32,23 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
 
   return utils.equals(arg, matcher)
 }
+
+const NO_CALLED_WITH_YET = Symbol('NO_CALLED_WITH')
+
 class WhenMock {
-  constructor (fn, defaultImplementation = null) {
+  constructor (fn) {
     // Incrementing ids assigned to each call mock to help with sorting as new mocks are added
     this.nextCallMockId = 0
     this.fn = fn
     fn.__whenMock__ = this
     this.callMocks = []
     this._origMock = fn.getMockImplementation()
-
-    if (defaultImplementation) {
-      this.fn.mockImplementation(() => {
-        throw new Error('Unintended use: Only use default value in combination with .calledWith(..), ' +
-          'or use standard mocking without jest-when.')
-      })
-    }
+    this.defaultImplementation = null
 
     const _mockImplementation = (matchers, expectCall, once = false) => (mockImplementation) => {
+      if (matchers[0] === NO_CALLED_WITH_YET) {
+        this.defaultImplementation = mockImplementation
+      }
       // To enable dynamic replacement during a test:
       // * call mocks with equal matchers are removed
       // * `once` mocks are used prioritized
@@ -83,14 +83,19 @@ class WhenMock {
               matchers.reduce(checkArgumentMatchers(expectCall, args), true)
           }
 
-          if (isMatch) {
+          if (isMatch && typeof mockImplementation === 'function') {
             this.callMocks[i].called = true
             return mockImplementation(...args)
           }
         }
-        return defaultImplementation ? defaultImplementation(...args)
-          : (typeof fn.__whenMock__._origMock === 'function'
-            ? fn.__whenMock__._origMock(...args) : undefined)
+
+        if (this.defaultImplementation) {
+          return this.defaultImplementation(...args)
+        }
+        if (typeof fn.__whenMock__._origMock === 'function') {
+          return fn.__whenMock__._origMock(...args)
+        }
+        return undefined
       })
 
       return {
@@ -110,13 +115,17 @@ class WhenMock {
       mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation)
     })
 
-    this.mockImplementation = mockImplementation => new WhenMock(fn, mockImplementation)
+    // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions
+    this.mockImplementation = mockImplementation => {
+      // Set up an implementation with a special matcher that can never be matched because it uses a private symbol
+      // Additionally the symbols existence can be checked to see if a calledWith was omitted.
+      return _mockImplementation([NO_CALLED_WITH_YET], false)(mockImplementation)
+    }
     this.mockReturnValue = returnValue => this.mockImplementation(() => returnValue)
     this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
     this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
 
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
-
     this.expectCalledWith = (...matchers) => ({ ...mockFunctions(matchers, true) })
 
     this.resetWhenMocks = () => {
