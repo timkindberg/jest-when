@@ -1,23 +1,17 @@
 const assert = require('assert')
 const utils = require('expect/build/jasmineUtils')
-const logger = require('./log')('when')
 
 let registry = new Set()
 
 const getCallLine = () => (new Error()).stack.split('\n')[4]
 
 const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
-  logger.debug(`matcher check, match: ${match}, index: ${i}`)
-
   // Propagate failure to the end
   if (!match) {
     return false
   }
 
   const arg = args[i]
-
-  logger.debug(`   matcher: ${String(matcher)}`)
-  logger.debug(`   arg: ${String(arg)}`)
 
   const isFunctionMatcher = typeof matcher === 'function' && matcher._isFunctionMatcher
 
@@ -72,8 +66,6 @@ class WhenMock {
       this.nextCallMockId++
 
       this.fn.mockImplementation((...args) => {
-        logger.debug('mocked impl', args)
-
         for (let i = 0; i < this.callMocks.length; i++) {
           const { matchers, mockImplementation, expectCall, once, called } = this.callMocks[i]
 
