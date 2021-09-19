@@ -1,24 +1,11 @@
-const { stringContaining } = expect
-
 const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*${expect}.*\\nReceived.*${actual}`)
 
 describe('When', () => {
-  let spyEquals, when, WhenMock, mockLogger, resetAllWhenMocks, verifyAllWhenMocksCalled
+  let spyEquals, when, WhenMock, resetAllWhenMocks, verifyAllWhenMocksCalled
 
   beforeEach(() => {
     spyEquals = jest.spyOn(require('expect/build/jasmineUtils'), 'equals')
-
-    mockLogger = {
-      info: jest.fn(),
-      debug: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      fatal: jest.fn(),
-      trace: jest.fn()
-    }
-
-    jest.mock('./log', () => () => mockLogger)
 
     when = require('./when').when
     resetAllWhenMocks = require('./when').resetAllWhenMocks
@@ -428,7 +415,6 @@ describe('When', () => {
 
       expect(fn(5)).toBeUndefined()
       expect(fn(symbol, 2)).toBe('x')
-      expect(mockLogger.debug).toBeCalledWith(stringContaining('matcher: Symbol(sym)'))
     })
 
     it('returns nothing if no declared value matches', () => {
@@ -437,8 +423,6 @@ describe('When', () => {
       when(fn).calledWith(1, 2).mockReturnValue('x')
 
       expect(fn(5, 6)).toBeUndefined()
-      expect(mockLogger.debug).toBeCalledWith(stringContaining('matcher: 1'))
-      expect(mockLogger.debug).not.toBeCalledWith(stringContaining('matcher: 2'))
     })
 
     it('expectCalledWith: fails a test with error messaging if argument does not match', () => {
