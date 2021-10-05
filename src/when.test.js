@@ -2,11 +2,9 @@ const errMsg = ({ expect, actual }) =>
   new RegExp(`Expected.*${expect}.*\\nReceived.*${actual}`)
 
 describe('When', () => {
-  let spyEquals, when, WhenMock, resetAllWhenMocks, verifyAllWhenMocksCalled
+  let when, WhenMock, resetAllWhenMocks, verifyAllWhenMocksCalled
 
   beforeEach(() => {
-    spyEquals = jest.spyOn(require('expect/build/jasmineUtils'), 'equals')
-
     when = require('./when').when
     resetAllWhenMocks = require('./when').resetAllWhenMocks
     verifyAllWhenMocksCalled = require('./when').verifyAllWhenMocksCalled
@@ -129,37 +127,6 @@ describe('When', () => {
   })
 
   describe('mock implementation', () => {
-    it('offloads equality check to jasmine equals helper', () => {
-      const fn = jest.fn()
-
-      when(fn).calledWith(1).mockReturnValue('x')
-
-      expect(fn(1)).toEqual('x')
-      expect(spyEquals).toBeCalledWith(1, 1)
-
-      expect(fn(2)).toEqual(undefined)
-      expect(spyEquals).toBeCalledWith(2, 1)
-    })
-
-    it('works with multiple args', () => {
-      const fn = jest.fn()
-
-      const anyString = expect.any(String)
-      const myFunction = function () {}
-
-      when(fn)
-        .calledWith(1, 'foo', true, anyString, undefined, myFunction)
-        .mockReturnValue('x')
-
-      expect(fn(1, 'foo', true, 'whatever', undefined, myFunction)).toEqual('x')
-      expect(spyEquals).toBeCalledWith(1, 1)
-      expect(spyEquals).toBeCalledWith('foo', 'foo')
-      expect(spyEquals).toBeCalledWith(true, true)
-      expect(spyEquals).toBeCalledWith('whatever', anyString)
-      expect(spyEquals).toBeCalledWith(undefined, undefined)
-      expect(spyEquals).toBeCalledWith(myFunction, myFunction)
-    })
-
     it('only matches exact sets of args, too little or too many args do not trigger mock return', () => {
       const fn = jest.fn()
 

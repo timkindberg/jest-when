@@ -1,9 +1,25 @@
 const assert = require('assert')
-const utils = require('expect/build/jasmineUtils')
 
 let registry = new Set()
 
 const getCallLine = () => (new Error()).stack.split('\n')[4]
+
+/**
+ * A hack to capture a reference to the `equals` jasmineUtil
+ */
+let equals = () => {}
+expect.extend({
+  __capture_equals__ () {
+    equals = this.equals
+    return { pass: true }
+  }
+})
+expect().__capture_equals__()
+let JEST_MATCHERS_OBJECT = Symbol.for('$$jest-matchers-object')
+delete global[JEST_MATCHERS_OBJECT].matchers.__capture_equals__
+/**
+ * End hack
+ */
 
 const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   // Propagate failure to the end
@@ -27,10 +43,10 @@ const checkArgumentMatchers = (expectCall, args) => (match, matcher, i) => {
   }
 
   if (isFunctionMatcher) {
-    return matcher(arg, utils.equals)
+    return matcher(arg, equals)
   }
 
-  return utils.equals(arg, matcher)
+  return equals(arg, matcher)
 }
 
 const NO_CALLED_WITH_YET = Symbol('NO_CALLED_WITH')
@@ -53,7 +69,7 @@ class WhenMock {
       // * call mocks with equal matchers are removed
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
-        .filter((callMock) => once || callMock.once || !utils.equals(callMock.matchers, matchers))
+        .filter((callMock) => once || callMock.once || !equals(callMock.matchers, matchers))
         .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
         .sort((a, b) => {
           // Once mocks should appear before the rest
