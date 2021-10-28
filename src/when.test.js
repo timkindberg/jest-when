@@ -821,5 +821,9 @@ describe('When', () => {
       expect(fn(1)).toEqual('a') // fails and will still return 'b' (as before my change)
       expect(fn(2)).toEqual('b')
     })
+
+    it('does not add to the number of assertion calls', () => {
+      expect.assertions(0)
+    })
   })
 })

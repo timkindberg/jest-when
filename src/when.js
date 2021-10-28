@@ -16,6 +16,9 @@ expect.extend({
 })
 expect().__capture_equals__()
 let JEST_MATCHERS_OBJECT = Symbol.for('$$jest-matchers-object')
+// Hackily reset assertionCalls back to zero incase dev's tests are using expect.assertions()
+global[JEST_MATCHERS_OBJECT].state.assertionCalls = 0
+// Hackily delete the custom matcher that we added
 delete global[JEST_MATCHERS_OBJECT].matchers.__capture_equals__
 /**
  * End hack
