@@ -296,6 +296,20 @@ expect(fn('foo')).toEqual('special')
 expect(fn('bar')).toEqual('default')
 ```
 
+One idea is to set up a default implementation that throws an error if an improper call is made to the mock.
+
+```javascript
+// A default implementation that fails your test
+const unsupportedCallError = (...args) => {
+  throw new Error(`Wrong args: ${JSON.stringify(args, null, 2)}`);
+};
+
+when(fn)
+  .mockImplementation(unsupportedCallError)
+  .calledWith(correctArgs)
+  .mockReturnValue(expectedValue);
+```
+
 #### Supports custom mockImplementation
 
 You could use this to call callbacks passed to your mock fn or other custom functionality.
