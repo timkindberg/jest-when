@@ -62,11 +62,11 @@ class WhenMock {
     fn.__whenMock__ = this
     this.callMocks = []
     this._origMock = fn.getMockImplementation()
-    this.defaultImplementation = null
+    this._defaultImplementation = null
 
     const _mockImplementation = (matchers, expectCall, once = false) => (mockImplementation) => {
       if (matchers[0] === NO_CALLED_WITH_YET) {
-        this.defaultImplementation = mockImplementation
+        this._defaultImplementation = mockImplementation
       }
       // To enable dynamic replacement during a test:
       // * call mocks with equal matchers are removed
@@ -108,8 +108,8 @@ class WhenMock {
           }
         }
 
-        if (this.defaultImplementation) {
-          return this.defaultImplementation(...args)
+        if (this._defaultImplementation) {
+          return this._defaultImplementation(...args)
         }
         if (typeof fn.__whenMock__._origMock === 'function') {
           return fn.__whenMock__._origMock(...args)
@@ -131,18 +131,26 @@ class WhenMock {
       mockRejectedValue: err => _mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
       mockRejectedValueOnce: err => _mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
       mockImplementation: implementation => _mockImplementation(matchers, expectCall)(implementation),
-      mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation)
+      mockImplementationOnce: implementation => _mockImplementation(matchers, expectCall, true)(implementation),
+      defaultImplementation: implementation => this.defaultImplementation(implementation),
+      defaultReturnValue: returnValue => this.defaultReturnValue(returnValue),
+      defaultResolvedValue: returnValue => this.defaultResolvedValue(returnValue),
+      defaultRejectedValue: err => this.defaultRejectedValue(err)
     })
 
     // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions
-    this.mockImplementation = mockImplementation => {
+    this.defaultImplementation = mockImplementation => {
       // Set up an implementation with a special matcher that can never be matched because it uses a private symbol
       // Additionally the symbols existence can be checked to see if a calledWith was omitted.
       return _mockImplementation([NO_CALLED_WITH_YET], false)(mockImplementation)
     }
-    this.mockReturnValue = returnValue => this.mockImplementation(() => returnValue)
-    this.mockResolvedValue = returnValue => this.mockReturnValue(Promise.resolve(returnValue))
-    this.mockRejectedValue = err => this.mockReturnValue(Promise.reject(err))
+    this.defaultReturnValue = returnValue => this.defaultImplementation(() => returnValue)
+    this.defaultResolvedValue = returnValue => this.defaultReturnValue(Promise.resolve(returnValue))
+    this.defaultRejectedValue = err => this.defaultResolvedValue(Promise.reject(err))
+    this.mockImplementation = this.defaultImplementation
+    this.mockReturnValue = this.defaultReturnValue
+    this.mockResolvedValue = this.defaultResolvedValue
+    this.mockRejectedValue = this.defaultRejectedValue
 
     this.calledWith = (...matchers) => ({ ...mockFunctions(matchers, false) })
     this.expectCalledWith = (...matchers) => ({ ...mockFunctions(matchers, true) })

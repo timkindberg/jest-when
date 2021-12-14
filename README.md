@@ -284,10 +284,23 @@ fn(2); // Will throw a helpful jest assertion error with args diff
 
 #### Supports default behavior
 
-Use any of `mockReturnValue`, `mockResolvedValue`, `mockRejectedValue`, `mockImplementation` directly on the object
+Use any of `defaultReturnValue`, `defaultResolvedValue`, `defaultRejectedValue`, `defaultImplementation`
 to set up a default behavior, which will serve as fallback if no matcher fits.
 
 ```javascript
+when(fn)
+  .calledWith('foo').mockReturnValue('special')
+  .defaultReturnValue('default') // This line can be placed anywhere, doesn't have to be at the end
+
+expect(fn('foo')).toEqual('special')
+expect(fn('bar')).toEqual('default')
+```
+
+Or if you use any of `mockReturnValue`, `mockResolvedValue`, `mockRejectedValue`, `mockImplementation` directly on the object
+before using `calledWith` it will also behave as a default fallback.
+
+```javascript
+// Same as above example
 when(fn)
   .mockReturnValue('default')
   .calledWith('foo').mockReturnValue('special')
@@ -299,15 +312,15 @@ expect(fn('bar')).toEqual('default')
 One idea is to set up a default implementation that throws an error if an improper call is made to the mock.
 
 ```javascript
-// A default implementation that fails your test
-const unsupportedCallError = (...args) => {
-  throw new Error(`Wrong args: ${JSON.stringify(args, null, 2)}`);
-};
-
 when(fn)
-  .mockImplementation(unsupportedCallError)
   .calledWith(correctArgs)
-  .mockReturnValue(expectedValue);
+  .mockReturnValue(expectedValue)
+  .defaultImplementation(unsupportedCallError)
+
+// A default implementation that fails your test
+function unsupportedCallError(...args) {
+  throw new Error(`Wrong args: ${JSON.stringify(args, null, 2)}`);
+}
 ```
 
 #### Supports custom mockImplementation
