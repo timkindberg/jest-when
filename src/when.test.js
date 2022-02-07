@@ -249,6 +249,22 @@ describe('When', () => {
         expect(fn(123, 'not a number')).toBeUndefined()
       })
 
+      it('first matcher is a proxy', () => {
+        const fn = jest.fn()
+
+        const proxy = new Proxy({}, {
+          get: () => true
+        })
+
+        when(fn)
+          .calledWith(proxy)
+          .mockReturnValue('x')
+
+        expect(proxy._isAllArgsFunctionMatcher).toEqual(true)
+
+        expect(fn(proxy)).toEqual('x')
+      })
+
       it('single arg match example', () => {
         const fn = jest.fn()
         const argAtIndex = (index, matcher) => when.allArgs((args, equals) => equals(args[index], matcher))
