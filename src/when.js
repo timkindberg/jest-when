@@ -84,9 +84,10 @@ class WhenMock {
 
       this.nextCallMockId++
 
-      this.fn.mockImplementation((...args) => {
-        for (let i = 0; i < this.callMocks.length; i++) {
-          const { matchers, mockImplementation, expectCall, once, called } = this.callMocks[i]
+      const instance = this
+      this.fn.mockImplementation(function (...args) {
+        for (let i = 0; i < instance.callMocks.length; i++) {
+          const { matchers, mockImplementation, expectCall, once, called } = instance.callMocks[i]
 
           // Do not let a once mock match more than once
           if (once && called) continue
@@ -110,16 +111,16 @@ class WhenMock {
           }
 
           if (isMatch && typeof mockImplementation === 'function') {
-            this.callMocks[i].called = true
-            return mockImplementation(...args)
+            instance.callMocks[i].called = true
+            return mockImplementation.call(this, ...args)
           }
         }
 
-        if (this._defaultImplementation) {
-          return this._defaultImplementation(...args)
+        if (instance._defaultImplementation) {
+          return instance._defaultImplementation.call(this, ...args)
         }
         if (typeof fn.__whenMock__._origMock === 'function') {
-          return fn.__whenMock__._origMock(...args)
+          return fn.__whenMock__._origMock.call(this, ...args)
         }
         return undefined
       })

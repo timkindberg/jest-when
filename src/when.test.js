@@ -1025,6 +1025,54 @@ describe('When', () => {
       expect(fn(2)).toEqual('b')
     })
 
+    it('keeps call context when not matched', () => {
+      class TheClass {
+        call () {
+          return 'ok'
+        }
+
+        request (...args) {
+          return this.call(...args)
+        }
+      }
+
+      const theInstance = new TheClass()
+
+      const theSpiedMethod = jest.spyOn(theInstance, 'request')
+
+      when(theSpiedMethod)
+        .calledWith(1)
+        .mockReturnValue('mock')
+
+      const unhandledCall = theInstance.request()
+      expect(unhandledCall).toBe('ok')
+    })
+
+    it('keeps call context when matched', () => {
+      class TheClass {
+        call () {
+          return 'ok'
+        }
+
+        request (...args) {
+          return this.call(...args)
+        }
+      }
+
+      const theInstance = new TheClass()
+
+      const theSpiedMethod = jest.spyOn(theInstance, 'request')
+
+      when(theSpiedMethod)
+        .calledWith(1)
+        .mockImplementation(function () {
+          return this.call() + '!'
+        })
+
+      const unhandledCall = theInstance.request(1)
+      expect(unhandledCall).toBe('ok!')
+    })
+
     it('does not add to the number of assertion calls', () => {
       expect.assertions(0)
     })
