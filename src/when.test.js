@@ -723,6 +723,16 @@ describe('When', () => {
           await expect(fn('foo')).resolves.toEqual('special')
         })
 
+        it('can default a resolved value alone', async () => {
+          const fn = jest.fn()
+
+          when(fn)
+            .defaultResolvedValue('default')
+
+          await expect(fn('bar')).resolves.toEqual('default')
+          await expect(fn('foo')).resolves.toEqual('default')
+        })
+
         it('has a default and non-default rejected value (defaultReturnValue alias)', async () => {
           const fn = jest.fn()
 
@@ -732,6 +742,16 @@ describe('When', () => {
 
           await expect(fn('bar')).rejects.toThrow('default')
           await expect(fn('foo')).rejects.toThrow('special')
+        })
+
+        it('can default a rejected value alone', async () => {
+          const fn = jest.fn()
+
+          when(fn)
+            .defaultRejectedValue(new Error('default'))
+
+          await expect(fn('bar')).rejects.toThrow('default')
+          await expect(fn('foo')).rejects.toThrow('default')
         })
 
         it('default reject interoperates with resolve (defaultReturnValue alias)', async () => {
