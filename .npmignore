@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Publish from an allowlist
+src/**/*.js
+!src/**/*.test.js
+LICENSE
+package.json
+README.md
