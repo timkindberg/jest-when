@@ -23,6 +23,7 @@
   "peerDependencies": {
     "jest": ">= 25"
   },
+  "files": ["/src/when.js"],
   "devDependencies": {
     "@stryker-mutator/core": "^2.0.0",
     "@stryker-mutator/html-reporter": "^2.0.0",
