@@ -154,7 +154,7 @@ class WhenMock {
     }
     this.defaultReturnValue = returnValue => this.defaultImplementation(() => returnValue)
     this.defaultResolvedValue = returnValue => this.defaultReturnValue(Promise.resolve(returnValue))
-    this.defaultRejectedValue = err => this.defaultResolvedValue(Promise.reject(err))
+    this.defaultRejectedValue = err => this.defaultReturnValue(Promise.reject(err))
     this.mockImplementation = this.defaultImplementation
     this.mockReturnValue = this.defaultReturnValue
     this.mockResolvedValue = this.defaultResolvedValue
