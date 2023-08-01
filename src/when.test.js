@@ -109,6 +109,29 @@ describe('When', () => {
       expect(caughtErr.message).toMatch(/Failed verifyAllWhenMocksCalled: 2 not called/)
     })
 
+    it('should print a full stacktrace if verification check fails', () => {
+      const fn1 = jest.fn()
+
+      function extractedWhenConfiguration () {
+        when(fn1).expectCalledWith(expect.anything()).mockReturnValueOnce('z')
+      }
+
+      extractedWhenConfiguration()
+      extractedWhenConfiguration()
+
+      fn1(1)
+
+      let caughtErr
+
+      try {
+        verifyAllWhenMocksCalled()
+      } catch (e) {
+        caughtErr = e
+      }
+
+      expect(caughtErr.message).toContain('at Object.extractedWhenConfiguration')
+    })
+
     it('fails verification check if all mocks were not called with line numbers', () => {
       const fn1 = jest.fn()
       const fn2 = jest.fn()
@@ -121,8 +144,14 @@ describe('When', () => {
       fn1(1)
       fn2(1)
 
-      // Should be two call lines printed, hence the {2} at the end of the regex
-      expect(verifyAllWhenMocksCalled).toThrow(/(src(?:\\|\/)when\.test\.js:\d{3}(.|\s)*){2}/)
+      try {
+        verifyAllWhenMocksCalled()
+      } catch (e) {
+        const errorLines = e.message.split('\n')
+        const currentFilePathPattern = /src(?:\\|\/)when\.test\.js:\d{3}(.|\s)*/
+        const numberOfMatches = errorLines.filter(line => currentFilePathPattern.test(line)).length
+        expect(numberOfMatches).toBe(2)
+      }
     })
   })
 
