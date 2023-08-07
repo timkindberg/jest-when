@@ -2,7 +2,7 @@ const assert = require('assert')
 
 let registry = new Set()
 
-const getCallLine = () => (new Error()).stack.split('\n')[4]
+const getCallLines = () => (new Error()).stack.split('\n').slice(4).join('\n')
 
 /**
  * A hack to capture a reference to the `equals` jasmineUtil
@@ -73,7 +73,7 @@ class WhenMock {
       // * `once` mocks are used prioritized
       this.callMocks = this.callMocks
         .filter((callMock) => once || callMock.once || !equals(callMock.matchers, matchers))
-        .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLine: getCallLine() })
+        .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLines: getCallLines() })
         .sort((a, b) => {
           // Once mocks should appear before the rest
           if (a.once !== b.once) {
@@ -95,12 +95,12 @@ class WhenMock {
           let isMatch = false
 
           if (matchers && matchers[0] &&
-              // is a possible all args matcher object
-              (typeof matchers[0] === 'function' || typeof matchers[0] === 'object') &&
-              // ensure not a proxy
-              '_isAllArgsFunctionMatcher' in matchers[0] &&
-              // check for the special property name
-              matchers[0]._isAllArgsFunctionMatcher === true
+            // is a possible all args matcher object
+            (typeof matchers[0] === 'function' || typeof matchers[0] === 'object') &&
+            // ensure not a proxy
+            '_isAllArgsFunctionMatcher' in matchers[0] &&
+            // check for the special property name
+            matchers[0]._isAllArgsFunctionMatcher === true
           ) {
             if (matchers.length > 1) throw new Error('When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs.')
             isMatch = checkArgumentMatchers(expectCall, [args])(true, matchers[0], 0)
@@ -224,11 +224,11 @@ const verifyAllWhenMocksCalled = () => {
   }, [[], [], []])
 
   const callLines = uncalledMocks
-    .filter(m => Boolean(m.callLine))
-    .map(m => `\n  ${String(m.callLine).trim()}`)
+    .filter(m => Boolean(m.callLines))
+    .map(m => `\n  ${String(m.callLines).trim()}`)
     .join('')
 
-  const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called at:${callLines}\n\n\n...rest of the stack...`
+  const msg = `Failed verifyAllWhenMocksCalled: ${uncalledMocks.length} not called: ${callLines}\n\n\n...rest of the stack...`
 
   assert.equal(`called mocks: ${calledMocks.length}`, `called mocks: ${allMocks.length}`, msg)
 }
