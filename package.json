@@ -1,6 +1,6 @@
 {
   "name": "jest-when",
-  "version": "3.5.2",
+  "version": "3.6.0",
   "description": "An extension lib for jest",
   "license": "MIT",
   "main": "src/when.js",
@@ -23,7 +23,9 @@
   "peerDependencies": {
     "jest": ">= 25"
   },
-  "files": ["/src/when.js"],
+  "files": [
+    "/src/when.js"
+  ],
   "devDependencies": {
     "@stryker-mutator/core": "^2.0.0",
     "@stryker-mutator/html-reporter": "^2.0.0",
