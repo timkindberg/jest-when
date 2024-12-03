@@ -347,18 +347,49 @@ You could use this to prevent mocks from carrying state between tests or asserti
 const { when, resetAllWhenMocks } = require('jest-when')
 const fn = jest.fn()
 
+// Test 1
 when(fn).expectCalledWith(1).mockReturnValueOnce('x')
-
 expect(fn(1)).toEqual('x')
 
 resetAllWhenMocks()
 
+// Test 2
 when(fn).expectCalledWith(1).mockReturnValueOnce('z')
-
 expect(fn(1)).toEqual('z')
 ```
 
 Thanks to [@whoaa512](https://github.com/whoaa512).
+
+#### Supports resetting individual mocks entirely or by matchers
+
+You can reset a single mocked function by calling `mockReset` on the mock function.
+
+```javascript
+const fn = jest.fn()
+
+when(fn).calledWith(1).mockReturnValue('yay!')
+when(fn).calledWith(2).mockReturnValue('boo!')
+fn.mockReset()
+
+expect(fn(1)).toBeUndefined() // no mocks
+expect(fn(2)).toBeUndefined() // no mocks
+```
+
+You can reset a single set of matchers by calling `mockReset` after `calledWith`. The matchers
+passed to calledWith will be used to remove any existing `calledWith` trainings with the same mathers.
+
+```javascript
+const fn = jest.fn()
+
+when(fn).calledWith(1, 2, 3).mockReturnValue('yay!')
+when(fn).calledWith(2).mockReturnValue('boo!')
+
+// Reset only the 1, 2, 3 mock call
+when(fn).calledWith(1, 2, 3).mockReset()
+
+expect(fn(1, 2, 3)).toBeUndefined() // no mock for 1, 2, 3
+expect(fn(2)).toEqual('boo!') // success!
+```
 
 #### Supports verifying that all mocked functions were called
 

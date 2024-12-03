@@ -143,7 +143,15 @@ class WhenMock {
       defaultImplementation: implementation => this.defaultImplementation(implementation),
       defaultReturnValue: returnValue => this.defaultReturnValue(returnValue),
       defaultResolvedValue: returnValue => this.defaultResolvedValue(returnValue),
-      defaultRejectedValue: err => this.defaultRejectedValue(err)
+      defaultRejectedValue: err => this.defaultRejectedValue(err),
+      mockReset: () => {
+        this.callMocks = this.callMocks
+          .filter((callMock) => !equals(callMock.matchers, matchers))
+        return {
+          ...this,
+          ...mockFunctions(matchers, expectCall)
+        }
+      }
     })
 
     // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions

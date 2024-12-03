@@ -1125,5 +1125,60 @@ describe('When', () => {
     it('does not add to the number of assertion calls', () => {
       expect.assertions(0)
     })
+
+    it('allows reset of specific mock with specific args by just setting to undefined', () => {
+      const mock = jest.fn()
+
+      when(mock).calledWith('hello').mockReturnValue('default')
+      expect(mock.__whenMock__.callMocks).toHaveLength(1)
+      when(mock).calledWith('hello').mockReturnValue(undefined)
+      expect(mock.__whenMock__.callMocks).toHaveLength(1)
+      when(mock).calledWith('hello').mockReturnValueOnce('a')
+      expect(mock.__whenMock__.callMocks).toHaveLength(2)
+      when(mock).calledWith('hello').mockReturnValueOnce('b')
+      expect(mock.__whenMock__.callMocks).toHaveLength(3)
+
+      expect(mock('hello')).toEqual('a')
+      expect(mock('hello')).toEqual('b')
+      expect(mock('hello')).toEqual(undefined)
+
+      console.log(mock.__whenMock__.callMocks)
+
+      // There are still 3 when mocks, we just set the return value of the first one to undefined
+      expect(mock.__whenMock__.callMocks).toHaveLength(3)
+    })
+
+    it('allows reset of specific mock with specific args by using mockReset after calledWith', () => {
+      const mock = jest.fn()
+
+      when(mock).calledWith('hello').mockReturnValue('default')
+      expect(mock.__whenMock__.callMocks).toHaveLength(1)
+      when(mock).calledWith('hello').mockReset()
+      expect(mock.__whenMock__.callMocks).toHaveLength(0)
+      when(mock).calledWith('hello').mockReturnValueOnce('a')
+      expect(mock.__whenMock__.callMocks).toHaveLength(1)
+      when(mock).calledWith('hello').mockReturnValueOnce('b')
+      expect(mock.__whenMock__.callMocks).toHaveLength(2)
+
+      expect(mock('hello')).toEqual('a')
+      expect(mock('hello')).toEqual('b')
+      expect(mock('hello')).toEqual(undefined)
+
+      // The first one was removed so only 2 remain
+      expect(mock.__whenMock__.callMocks).toHaveLength(2)
+
+      //
+      // Try again with multiple matchers
+      const fn = jest.fn()
+
+      when(fn).calledWith(1, 2, 3).mockReturnValue('yay!')
+      when(fn).calledWith(2).mockReturnValue('boo!')
+
+      // Reset only the 1, 2, 3 mock call
+      when(fn).calledWith(1, 2, 3).mockReset()
+
+      expect(fn(1, 2, 3)).toBeUndefined() // no mock for 1, 2, 3
+      expect(fn(2)).toEqual('boo!') // success!
+    })
   })
 })
