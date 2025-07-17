@@ -4,6 +4,7 @@
   "description": "An extension lib for jest",
   "license": "MIT",
   "main": "src/when.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "jest",
     "lint": "eslint src/",
