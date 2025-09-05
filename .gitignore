@@ -1,7 +1,9 @@
 node_modules
 .vscode
 coverage
-package-lock.json
 reports
 .stryker-tmp/
 /.idea
+/tmp
+/dist
+*.tsbuildinfo

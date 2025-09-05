@@ -3,13 +3,18 @@
   "version": "3.7.0",
   "description": "An extension lib for jest",
   "license": "MIT",
-  "main": "src/when.js",
+  "main": "dist/when.js",
+  "types": "dist/when.d.ts",
   "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepare": "npm run clean && npm run build",
     "test": "jest",
     "lint": "eslint src/",
     "lint.fix": "eslint src/ --fix",
     "stryker": "stryker run",
-    "release": "np"
+    "release": "np",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "repository": {
     "type": "git",
@@ -24,13 +29,17 @@
     "jest": ">= 25"
   },
   "files": [
-    "/src/when.js"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "devDependencies": {
     "@stryker-mutator/core": "^2.0.0",
     "@stryker-mutator/html-reporter": "^2.0.0",
     "@stryker-mutator/javascript-mutator": "^2.0.0",
     "@stryker-mutator/jest-runner": "^2.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.3.1",
     "eslint": "^4.19.1",
     "eslint-config-standard": "^11.0.0",
     "eslint-plugin-import": "^2.12.0",
@@ -38,14 +47,20 @@
     "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-standard": "^3.1.0",
     "jest": "^27.0.0",
+    "jest-mock-extended": "^4.0.0",
     "np": "^7.3.0",
-    "pre-commit": "^1.2.2"
+    "pre-commit": "^1.2.2",
+    "ts-jest": "^27.1.4",
+    "typescript": "^5.9.2"
   },
   "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
     "verbose": false,
     "collectCoverage": true,
     "collectCoverageFrom": [
-      "src/**/*.js"
+      "src/**/*.ts",
+      "!src/**/*.test.ts"
     ],
     "coverageDirectory": "build/reports/coverage/",
     "coverageReporters": [
@@ -53,7 +68,9 @@
       "lcov",
       "text"
     ],
-    "testEnvironment": "node",
+    "testMatch": [
+      "**/src/**/*.test.ts"
+    ],
     "resetModules": true
   },
   "pre-commit": [
