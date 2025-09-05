@@ -353,9 +353,6 @@ const checkArgumentMatchers = (expectCall: boolean, args: any[]) => (match: bool
   return equals(arg, matcher);
 };
 
-/** @internal Symbol used to identify default implementations */
-const NO_CALLED_WITH_YET = Symbol('NO_CALLED_WITH');
-
 /**
  * The main WhenMock class that provides jest-when functionality
  * 
@@ -376,7 +373,7 @@ const NO_CALLED_WITH_YET = Symbol('NO_CALLED_WITH');
  * 
  * @template TReturn The return type of the mocked function
  */
-export class WhenMock<TReturn = any> implements MockFunctions<TReturn> {
+export class WhenMock<TReturn = any> {
   /** @internal Next ID for call mocks */
   private nextCallMockId = 0;
   
@@ -386,33 +383,131 @@ export class WhenMock<TReturn = any> implements MockFunctions<TReturn> {
   /** Array of configured call mocks */
   public callMocks: CallMock[] = [];
   
-  /** Original mock implementation before jest-when modifications */
-  public _origMock: ((...args: any[]) => any) | undefined;
+  /** @internal Original mock implementation before jest-when modifications */
+  public __origMock: ((...args: any[]) => any) | undefined;
+
+  /** @internal Whether .calledWith() was already called on this mock since the last when() */
+  public __noCalledWithYet: boolean = true;
   
-  /** @internal Default implementation for unmatched calls */
-  private _defaultImplementation: ((...args: any[]) => any) | null = null;
+  /** @internal Matchers for the mock */
+  private _matchers: Matcher[] = [];
 
-  /** @internal Factory method for creating mock functions */
-  private createMockFunctions: (matchers: Matcher[], expectCall: boolean) => WhenMock<TReturn> & MockFunctions<TReturn>;
+  /** @internal Whether to expect the mock to be called */
+  private _expectCall: boolean = false;
 
-  // Interface implementations (assigned in constructor)
-  mockReturnValue!: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockReturnValueOnce!: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockResolvedValue!: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockResolvedValueOnce!: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockRejectedValue!: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockRejectedValueOnce!: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockImplementation!: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockImplementationOnce!: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  defaultImplementation!: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  defaultReturnValue!: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  defaultResolvedValue!: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  defaultRejectedValue!: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  mockReset!: () => WhenMock<TReturn> & MockFunctions<TReturn>;
-  resetWhenMocks!: () => void;
-  calledWith!: (...matchers: Matcher[]) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  expectCalledWith!: (...matchers: Matcher[]) => WhenMock<TReturn> & MockFunctions<TReturn>;
+  /** @internal Whether to only call the mock once */
+  private _once: boolean = false;
 
+  /** @internal Create a "once" version of a function */
+  private _onceOf = (fn: (...args: any[]) => any) => {
+    return (...args: any[]) => {
+      this._once = true;
+      return fn(...args);
+    }
+  }
+  
+  /** @internal The default implementation when no matchers are specified */
+  private _defaultImplementation: any;
+
+  /**
+   * Specify the arguments that should trigger this mock behavior
+   * @param matchers The argument matchers (literals, objects, Jest matchers, or function matchers)
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo', 42).mockReturnValue('matched');
+   * 
+   * fn('foo', 42); // Returns: "matched"
+   * fn('bar', 42); // Returns: undefined
+   * ```
+   */
+  calledWith = (...matchers: Matcher[]) => {
+    this.__noCalledWithYet = false;
+    this._matchers = matchers;
+    this._expectCall = false;
+    return this;
+  }
+
+  expectCalledWith = (...matchers: Matcher[]) => {
+    this.__noCalledWithYet = false;
+    this._matchers = matchers;
+    this._expectCall = true;
+    return this;
+  }
+
+  // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions
+  defaultImplementation = (mockImplementation: (...args: any[]) => TReturn) => {
+    this.__noCalledWithYet = true;
+    this._matchers = [];
+    this._expectCall = false;
+    // Set up an implementation with a special matcher that can never be matched because it uses a private symbol
+    // Additionally the symbols existence can be checked to see if a calledWith was omitted.
+    this._mockImplementation(mockImplementation);
+    return this
+  };
+  defaultReturnValue = (returnValue: TReturn) => {
+    this.defaultImplementation(() => returnValue);
+    return this;
+  }
+  defaultResolvedValue = (returnValue: TReturn) => {
+    this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
+    return this;
+  }
+  defaultRejectedValue = (err: unknown) => {
+    this.defaultReturnValue(Promise.reject(err) as TReturn);
+    return this;
+  }
+
+  mockReturnValue = (returnValue: TReturn) => {
+    console.log('mockReturnValue', this.__noCalledWithYet);
+    if (this.__noCalledWithYet) {
+      this.defaultReturnValue(returnValue);
+    } else {
+      this._mockImplementation(() => returnValue);
+    }
+    return this;
+  }
+  mockReturnValueOnce = this._onceOf(this.mockReturnValue)
+
+  mockResolvedValue = (returnValue: Awaited<TReturn>) => {
+    if (this.__noCalledWithYet) {
+      this.defaultResolvedValue(returnValue);
+    } else {
+      this._mockImplementation(() => Promise.resolve(returnValue));
+    }
+    return this;
+  }
+  mockResolvedValueOnce = this._onceOf(this.mockResolvedValue)
+
+  mockRejectedValue = (err: unknown) => {
+    if (this.__noCalledWithYet) {
+      this.defaultRejectedValue(err);
+    } else {
+      this._mockImplementation(() => Promise.reject(err));
+    }
+    return this;
+  }
+  mockRejectedValueOnce = this._onceOf(this.mockRejectedValue)
+
+  mockImplementation = (implementation: (...args: any[]) => TReturn) => {
+    if (this.__noCalledWithYet) {
+      this.defaultImplementation(implementation);
+    } else {
+      this._mockImplementation(implementation);
+    }
+    return this;
+  }
+  mockImplementationOnce = this._onceOf(this.mockImplementation)
+
+  resetWhenMocks = () => {
+    resetWhenMocksOnFn(this.fn)
+  }
+
+  mockReset = () => {
+      this.callMocks = this.callMocks.filter((callMock) => !equals(callMock.matchers, this._matchers));
+      return this;
+  }
 
   /**
    * Create a new WhenMock instance
@@ -421,123 +516,79 @@ export class WhenMock<TReturn = any> implements MockFunctions<TReturn> {
   constructor(fn: jest.Mock | jest.SpyInstance) {
     this.fn = fn;
     fn.__whenMock__ = this;
-    this._origMock = fn.getMockImplementation() || undefined;
-
-    // Create the core mock implementation function
-    const _mockImplementation = (matchers: Matcher[], expectCall: boolean, once = false) => (mockImplementation: (...args: any[]) => any) => {
-      if (matchers[0] === NO_CALLED_WITH_YET) {
-        this._defaultImplementation = mockImplementation;
-      }
-      // To enable dynamic replacement during a test:
-      // * call mocks with equal matchers are removed
-      // * `once` mocks are prioritized
-      this.callMocks = this.callMocks
-        .filter((callMock) => once || callMock.once || !equals(callMock.matchers, matchers))
-        .concat({ matchers, mockImplementation, expectCall, once, called: false, id: this.nextCallMockId, callLines: getCallLines() })
-        .sort((a, b) => {
-          // Once mocks should appear before the rest
-          if (a.once !== b.once) {
-            return a.once ? -1 : 1;
-          }
-          return a.id - b.id;
-        });
-
-      this.nextCallMockId++;
-
-      const instance = this;
-      this.fn.mockImplementation(function (this: any, ...args: any[]) {
-        for (let i = 0; i < instance.callMocks.length; i++) {
-          const { matchers, mockImplementation, expectCall, once, called } = instance.callMocks[i];
-
-          // Do not let a once mock match more than once
-          if (once && called) continue;
-
-          let isMatch = false;
-
-          if (matchers && matchers[0] &&
-            // is a possible all args matcher object
-            (typeof matchers[0] === 'function' || typeof matchers[0] === 'object') &&
-            // ensure not a proxy
-            '_isAllArgsFunctionMatcher' in matchers[0] &&
-            // check for the special property name
-            matchers[0]._isAllArgsFunctionMatcher === true
-          ) {
-            if (matchers.length > 1) throw new Error('When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs.');
-            isMatch = checkArgumentMatchers(expectCall, [args])(true, matchers[0], 0);
-          } else {
-            isMatch =
-              args.length === matchers.length &&
-              matchers.reduce(checkArgumentMatchers(expectCall, args), true);
-          }
-
-          if (isMatch && typeof mockImplementation === 'function') {
-            instance.callMocks[i].called = true;
-            return mockImplementation.call(this, ...args);
-          }
-        }
-
-        if (instance._defaultImplementation) {
-          return instance._defaultImplementation.call(this, ...args);
-        }
-        if (typeof instance.fn.__whenMock__?._origMock === 'function') {
-          return instance.fn.__whenMock__._origMock.call(this, ...args);
-        }
-        return undefined;
-      });
-
-      return this.createMockFunctions(matchers, expectCall);
-    };
-
-    // Create a reusable mock functions factory
-    this.createMockFunctions = (matchers: Matcher[], expectCall: boolean): WhenMock<TReturn> & MockFunctions<TReturn> => {
-      const mockFunctions: MockFunctions<TReturn> = {
-        mockReturnValue: (returnValue: TReturn) => _mockImplementation(matchers, expectCall)(() => returnValue),
-        mockReturnValueOnce: (returnValue: TReturn) => _mockImplementation(matchers, expectCall, true)(() => returnValue),
-        mockResolvedValue: (returnValue: Awaited<TReturn>) => _mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
-        mockResolvedValueOnce: (returnValue: Awaited<TReturn>) => _mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
-        mockRejectedValue: (err: unknown) => _mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
-        mockRejectedValueOnce: (err: unknown) => _mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
-        mockImplementation: (implementation: (...args: any[]) => TReturn) => _mockImplementation(matchers, expectCall)(implementation),
-        mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => _mockImplementation(matchers, expectCall, true)(implementation),
-        defaultImplementation: (implementation: (...args: any[]) => TReturn) => this.defaultImplementation(implementation),
-        defaultReturnValue: (returnValue: TReturn) => this.defaultReturnValue(returnValue),
-        defaultResolvedValue: (returnValue: Awaited<TReturn>) => this.defaultResolvedValue(returnValue),
-        defaultRejectedValue: (err: unknown) => this.defaultRejectedValue(err),
-        calledWith: (...newMatchers: Matcher[]) => this.calledWith(...newMatchers),
-        expectCalledWith: (...newMatchers: Matcher[]) => this.expectCalledWith(...newMatchers),
-        resetWhenMocks: () => this.resetWhenMocks(),
-        mockReset: () => {
-          this.callMocks = this.callMocks
-            .filter((callMock) => !equals(callMock.matchers, matchers));
-          return this.createMockFunctions(matchers, expectCall);
-        }
-      };
-      return { ...this, ...mockFunctions } as WhenMock<TReturn> & MockFunctions<TReturn>;
-    };
-
-    // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions
-    this.defaultImplementation = (mockImplementation: (...args: any[]) => TReturn) => {
-      // Set up an implementation with a special matcher that can never be matched because it uses a private symbol
-      // Additionally the symbols existence can be checked to see if a calledWith was omitted.
-      return _mockImplementation([NO_CALLED_WITH_YET], false)(mockImplementation);
-    };
-    this.defaultReturnValue = (returnValue: TReturn) => this.defaultImplementation(() => returnValue);
-    this.defaultResolvedValue = (returnValue: TReturn) => this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
-    this.defaultRejectedValue = (err: unknown) => this.defaultReturnValue(Promise.reject(err) as TReturn);
-    this.mockImplementation = this.defaultImplementation;
-    this.mockReturnValue = this.defaultReturnValue;
-    this.mockResolvedValue = this.defaultResolvedValue;
-    this.mockRejectedValue = this.defaultRejectedValue;
-
-    this.calledWith = (...matchers) => ({ ...this,...this.createMockFunctions(matchers, false) }) as WhenMock<TReturn> & MockFunctions<TReturn>;
-    this.expectCalledWith = (...matchers) => ({ ...this, ...this.createMockFunctions(matchers, true) }) as WhenMock<TReturn> & MockFunctions<TReturn>;
-
-    this.resetWhenMocks = () => {
-      resetWhenMocksOnFn(fn)
-    }
+    this.__origMock = fn.getMockImplementation() || undefined;
   }
 
+  /** @internal The function to call when the mock is called */
+  private _mockImplementation = (mockImplementation: (...args: any[]) => any) => {
+    if (this.__noCalledWithYet) {
+      this._defaultImplementation = mockImplementation;
+    }
+    // To enable dynamic replacement during a test:
+    // * call mocks with equal matchers are removed
+    // * `once` mocks are prioritized
+    this.callMocks = this.callMocks
+      .filter((callMock) => this._once || callMock.once || !equals(callMock.matchers, this._matchers))
+      .concat({ 
+          matchers: this._matchers, 
+          mockImplementation, 
+          expectCall: this._expectCall, 
+          once: this._once, 
+          called: false, 
+          id: this.nextCallMockId, 
+          callLines: getCallLines() 
+      })
+      .sort((a, b) => {
+        // Once mocks should appear before the rest
+        if (a.once !== b.once) {
+          return a.once ? -1 : 1;
+        }
+        return a.id - b.id;
+      });
 
+    this.nextCallMockId++;
+
+    const instance = this;
+    this.fn.mockImplementation(function (this: any, ...args: any[]) {
+      for (let i = 0; i < instance.callMocks.length; i++) {
+        const { matchers, mockImplementation, expectCall, once, called } = instance.callMocks[i];
+
+        // Do not let a once mock match more than once
+        if (once && called) continue;
+
+        let isMatch = false;
+
+        if (matchers && matchers[0] &&
+          // is a possible all args matcher object
+          (typeof matchers[0] === 'function' || typeof matchers[0] === 'object') &&
+          // ensure not a proxy
+          '_isAllArgsFunctionMatcher' in matchers[0] &&
+          // check for the special property name
+          matchers[0]._isAllArgsFunctionMatcher === true
+        ) {
+          if (matchers.length > 1) throw new Error('When using when.allArgs, it must be the one and only matcher provided to calledWith. You have incorrectly provided other matchers along with when.allArgs.');
+          isMatch = checkArgumentMatchers(expectCall, [args])(true, matchers[0], 0);
+        } else {
+          isMatch =
+            args.length === matchers.length &&
+            matchers.reduce(checkArgumentMatchers(expectCall, args), true);
+        }
+
+        if (isMatch && typeof mockImplementation === 'function') {
+          instance.callMocks[i].called = true;
+          return mockImplementation.call(this, ...args);
+        }
+      }
+
+      if (instance._defaultImplementation) {
+        return instance._defaultImplementation.call(this, ...args);
+      }
+      if (typeof instance.fn.__whenMock__?.__origMock === 'function') {
+        return instance.fn.__whenMock__.__origMock.call(this, ...args);
+      }
+      return undefined;
+    });
+  }
 }
 
 /**
@@ -631,7 +682,10 @@ export const when: WhenFunction = <TReturn = any, TArgs extends any[] = any[]>(f
   // when(fn) <-- This one
   //     .calledWith(when(numberIsGreaterThanZero)) <-- Not this one
   if (isJestMock(fn)) {
-    if (fn.__whenMock__ instanceof WhenMock) return fn.__whenMock__;
+    if (fn.__whenMock__ instanceof WhenMock) {
+        fn.__whenMock__.__noCalledWithYet = true;
+        return fn.__whenMock__;
+    }
     const whenMock = new WhenMock(fn);
     registry.add(fn);
     const originalMockReset = fn.mockReset;
@@ -707,7 +761,7 @@ export const resetAllWhenMocks = (): void => {
 function resetWhenMocksOnFn(fn: jest.Mock | jest.SpyInstance): void {
   const whenMock = fn.__whenMock__;
   if (whenMock) {
-    fn.mockImplementation(whenMock._origMock);
+    fn.mockImplementation(whenMock.__origMock);
     fn.__whenMock__ = undefined;
   }
   registry.delete(fn);
