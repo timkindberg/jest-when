@@ -82,248 +82,6 @@ interface CallMock {
   callLines: string;
 }
 
-/**
- * Interface defining all the mock functions available on a WhenMock instance
- * @template TReturn The return type of the mocked function
- */
-interface MockFunctions<TReturn> {
-  /**
-   * Set a return value for the mock when called with the specified arguments
-   * @param returnValue The value to return
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValue('success');
-   * 
-   * fn('foo'); // Returns: "success"
-   * ```
-   */
-  mockReturnValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a return value for the mock when called with the specified arguments (one-time only)
-   * @param returnValue The value to return
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValueOnce('first').mockReturnValue('default');
-   * 
-   * fn('foo'); // Returns: "first"
-   * fn('foo'); // Returns: "default"
-   * ```
-   */
-  mockReturnValueOnce: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a resolved Promise value for the mock when called with the specified arguments
-   * @param returnValue The value to resolve with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockResolvedValue('async success');
-   * 
-   * await fn('foo'); // Returns: Promise that resolves to "async success"
-   * ```
-   */
-  mockResolvedValue: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a resolved Promise value for the mock when called with the specified arguments (one-time only)
-   * @param returnValue The value to resolve with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockResolvedValueOnce('first async');
-   * 
-   * await fn('foo'); // Returns: Promise that resolves to "first async"
-   * await fn('foo'); // Returns: Promise that resolves to undefined
-   * ```
-   */
-  mockResolvedValueOnce: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a rejected Promise value for the mock when called with the specified arguments
-   * @param err The error to reject with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockRejectedValue(new Error('async error'));
-   * 
-   * await fn('foo'); // Returns: Promise that rejects with Error('async error')
-   * ```
-   */
-  mockRejectedValue: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a rejected Promise value for the mock when called with the specified arguments (one-time only)
-   * @param err The error to reject with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockRejectedValueOnce(new Error('first error'));
-   * 
-   * await fn('foo'); // Returns: Promise that rejects with Error('first error')
-   * await fn('foo'); // Returns: Promise that resolves to undefined
-   * ```
-   */
-  mockRejectedValueOnce: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a custom implementation for the mock when called with the specified arguments
-   * @param implementation The function to call
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockImplementation((arg) => `processed: ${arg}`);
-   * 
-   * fn('foo'); // Returns: "processed: foo"
-   * ```
-   */
-  mockImplementation: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a custom implementation for the mock when called with the specified arguments (one-time only)
-   * @param implementation The function to call
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockImplementationOnce((arg) => `first: ${arg}`);
-   * 
-   * fn('foo'); // Returns: "first: foo"
-   * fn('foo'); // Returns: undefined
-   * ```
-   */
-  mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a default implementation for the mock (fallback when no specific matchers match)
-   * @param implementation The function to call
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValue('special').defaultImplementation(() => 'default');
-   * 
-   * fn('foo'); // Returns: "special"
-   * fn('bar'); // Returns: "default"
-   * ```
-   */
-  defaultImplementation: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a default return value for the mock (fallback when no specific matchers match)
-   * @param returnValue The value to return
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValue('special').defaultReturnValue('default');
-   * 
-   * fn('foo'); // Returns: "special"
-   * fn('bar'); // Returns: "default"
-   * ```
-   */
-  defaultReturnValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a default resolved Promise value for the mock (fallback when no specific matchers match)
-   * @param returnValue The value to resolve with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockResolvedValue('special').defaultResolvedValue('default');
-   * 
-   * await fn('foo'); // Returns: Promise that resolves to "special"
-   * await fn('bar'); // Returns: Promise that resolves to "default"
-   * ```
-   */
-  defaultResolvedValue: (returnValue: Awaited<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Set a default rejected Promise value for the mock (fallback when no specific matchers match)
-   * @param err The error to reject with
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockResolvedValue('special').defaultRejectedValue(new Error('default error'));
-   * 
-   * await fn('foo'); // Returns: Promise that resolves to "special"
-   * await fn('bar'); // Returns: Promise that rejects with Error('default error')
-   * ```
-   */
-  defaultRejectedValue: (err: unknown) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Reset the mock for the specified arguments
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValue('bar');
-   * 
-   * fn('foo'); // Returns: "bar"
-   * 
-   * when(fn).calledWith('foo').mockReset();
-   * fn('foo'); // Returns: undefined
-   * ```
-   */
-  mockReset: () => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Reset all when mocks for this function
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo').mockReturnValue('bar');
-   * when(fn).calledWith('baz').mockReturnValue('qux');
-   * 
-   * fn.resetWhenMocks();
-   * fn('foo'); // Returns: undefined
-   * fn('baz'); // Returns: undefined
-   * ```
-   */
-  resetWhenMocks: () => void;
-  
-  /**
-   * Specify the arguments that should trigger this mock behavior
-   * @param matchers The argument matchers (literals, objects, Jest matchers, or function matchers)
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).calledWith('foo', 42).mockReturnValue('matched');
-   * 
-   * fn('foo', 42); // Returns: "matched"
-   * fn('bar', 42); // Returns: undefined
-   * ```
-   */
-  calledWith: (...matchers: Matcher[]) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
-  /**
-   * Specify the arguments that should trigger this mock behavior and assert they are called
-   * @param matchers The argument matchers (literals, objects, Jest matchers, or function matchers)
-   * @returns The WhenMock instance for chaining
-   * @example
-   * ```typescript
-   * const fn = jest.fn();
-   * when(fn).expectCalledWith('foo').mockReturnValue('success');
-   * 
-   * fn('foo'); // Returns: "success" ✅
-   * fn('bar'); // Throws assertion error ❌
-   * ```
-   */
-  expectCalledWith: (...matchers: Matcher[]) => WhenMock<TReturn> & MockFunctions<TReturn>;
-}
 
 const checkArgumentMatchers = (expectCall: boolean, args: any[]) => (match: boolean, matcher: Matcher, i: number): boolean => {
   // Propagate failure to the end
@@ -429,6 +187,19 @@ export class WhenMock<TReturn = any> {
     return this;
   }
 
+  /**
+   * Specify the arguments that should trigger this mock behavior and assert they are called
+   * @param matchers The argument matchers (literals, objects, Jest matchers, or function matchers)
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).expectCalledWith('foo').mockReturnValue('success');
+   * 
+   * fn('foo'); // Returns: "success" ✅
+   * fn('bar'); // Throws assertion error ❌
+   * ```
+   */
   expectCalledWith = (...matchers: Matcher[]) => {
     this.__noCalledWithYet = false;
     this._matchers = matchers;
@@ -436,7 +207,19 @@ export class WhenMock<TReturn = any> {
     return this;
   }
 
-  // These four functions are only used when the dev has not used `.calledWith` before calling one of the mock return functions
+  /**
+   * Set a default implementation for the mock (fallback when no specific matchers match)
+   * @param implementation The function to call
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValue('special').defaultImplementation(() => 'default');
+   * 
+   * fn('foo'); // Returns: "special"
+   * fn('bar'); // Returns: "default"
+   * ```
+   */
   defaultImplementation = (mockImplementation: (...args: any[]) => TReturn) => {
     this.__noCalledWithYet = true;
     this._matchers = [];
@@ -446,19 +229,70 @@ export class WhenMock<TReturn = any> {
     this._mockImplementation(mockImplementation);
     return this
   };
+  /**
+   * Set a default return value for the mock (fallback when no specific matchers match)
+   * @param returnValue The value to return
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValue('special').defaultReturnValue('default');
+   * 
+   * fn('foo'); // Returns: "special"
+   * fn('bar'); // Returns: "default"
+   * ```
+   */
   defaultReturnValue = (returnValue: TReturn) => {
     this.defaultImplementation(() => returnValue);
     return this;
   }
+  /**
+   * Set a default resolved Promise value for the mock (fallback when no specific matchers match)
+   * @param returnValue The value to resolve with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockResolvedValue('special').defaultResolvedValue('default');
+   * 
+   * await fn('foo'); // Returns: Promise that resolves to "special"
+   * await fn('bar'); // Returns: Promise that resolves to "default"
+   * ```
+   */
   defaultResolvedValue = (returnValue: TReturn) => {
     this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
     return this;
   }
+  /**
+   * Set a default rejected Promise value for the mock (fallback when no specific matchers match)
+   * @param err The error to reject with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockResolvedValue('special').defaultRejectedValue(new Error('default error'));
+   * 
+   * await fn('foo'); // Returns: Promise that resolves to "special"
+   * await fn('bar'); // Returns: Promise that rejects with Error('default error')
+   * ```
+   */
   defaultRejectedValue = (err: unknown) => {
     this.defaultReturnValue(Promise.reject(err) as TReturn);
     return this;
   }
 
+  /**
+   * Set a return value for the mock when called with the specified arguments
+   * @param returnValue The value to return
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValue('success');
+   * 
+   * fn('foo'); // Returns: "success"
+   * ```
+   */
   mockReturnValue = (returnValue: TReturn) => {
     console.log('mockReturnValue', this.__noCalledWithYet);
     if (this.__noCalledWithYet) {
@@ -468,8 +302,33 @@ export class WhenMock<TReturn = any> {
     }
     return this;
   }
+  /**
+   * Set a return value for the mock when called with the specified arguments (one-time only)
+   * @param returnValue The value to return
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValueOnce('first').mockReturnValue('default');
+   * 
+   * fn('foo'); // Returns: "first"
+   * fn('foo'); // Returns: "default"
+   * ```
+   */
   mockReturnValueOnce = this._onceOf(this.mockReturnValue)
 
+  /**
+   * Set a resolved Promise value for the mock when called with the specified arguments
+   * @param returnValue The value to resolve with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockResolvedValue('async success');
+   * 
+   * await fn('foo'); // Returns: Promise that resolves to "async success"
+   * ```
+   */
   mockResolvedValue = (returnValue: Awaited<TReturn>) => {
     if (this.__noCalledWithYet) {
       this.defaultResolvedValue(returnValue);
@@ -478,8 +337,33 @@ export class WhenMock<TReturn = any> {
     }
     return this;
   }
+  /**
+   * Set a resolved Promise value for the mock when called with the specified arguments (one-time only)
+   * @param returnValue The value to resolve with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockResolvedValueOnce('first async');
+   * 
+   * await fn('foo'); // Returns: Promise that resolves to "first async"
+   * await fn('foo'); // Returns: Promise that resolves to undefined
+   * ```
+   */
   mockResolvedValueOnce = this._onceOf(this.mockResolvedValue)
 
+  /**
+   * Set a rejected Promise value for the mock when called with the specified arguments
+   * @param err The error to reject with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockRejectedValue(new Error('async error'));
+   * 
+   * await fn('foo'); // Returns: Promise that rejects with Error('async error')
+   * ```
+   */
   mockRejectedValue = (err: unknown) => {
     if (this.__noCalledWithYet) {
       this.defaultRejectedValue(err);
@@ -488,8 +372,33 @@ export class WhenMock<TReturn = any> {
     }
     return this;
   }
+  /**
+   * Set a rejected Promise value for the mock when called with the specified arguments (one-time only)
+   * @param err The error to reject with
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockRejectedValueOnce(new Error('first error'));
+   * 
+   * await fn('foo'); // Returns: Promise that rejects with Error('first error')
+   * await fn('foo'); // Returns: Promise that resolves to undefined
+   * ```
+   */
   mockRejectedValueOnce = this._onceOf(this.mockRejectedValue)
 
+  /**
+   * Set a custom implementation for the mock when called with the specified arguments
+   * @param implementation The function to call
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockImplementation((arg) => `processed: ${arg}`);
+   * 
+   * fn('foo'); // Returns: "processed: foo"
+   * ```
+   */
   mockImplementation = (implementation: (...args: any[]) => TReturn) => {
     if (this.__noCalledWithYet) {
       this.defaultImplementation(implementation);
@@ -498,12 +407,52 @@ export class WhenMock<TReturn = any> {
     }
     return this;
   }
+  /**
+   * Set a custom implementation for the mock when called with the specified arguments (one-time only)
+   * @param implementation The function to call
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockImplementationOnce((arg) => `first: ${arg}`);
+   * 
+   * fn('foo'); // Returns: "first: foo"
+   * fn('foo'); // Returns: undefined
+   * ```
+   */
   mockImplementationOnce = this._onceOf(this.mockImplementation)
 
+  /**
+   * Reset all when mocks for this function
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValue('bar');
+   * when(fn).calledWith('baz').mockReturnValue('qux');
+   * 
+   * fn.resetWhenMocks();
+   * fn('foo'); // Returns: undefined
+   * fn('baz'); // Returns: undefined
+   * ```
+   */
   resetWhenMocks = () => {
     resetWhenMocksOnFn(this.fn)
   }
 
+  /**
+   * Reset the mock for the specified arguments
+   * @returns The WhenMock instance for chaining
+   * @example
+   * ```typescript
+   * const fn = jest.fn();
+   * when(fn).calledWith('foo').mockReturnValue('bar');
+   * 
+   * fn('foo'); // Returns: "bar"
+   * 
+   * when(fn).calledWith('foo').mockReset();
+   * fn('foo'); // Returns: undefined
+   * ```
+   */
   mockReset = () => {
       this.callMocks = this.callMocks.filter((callMock) => !equals(callMock.matchers, this._matchers));
       return this;
