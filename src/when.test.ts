@@ -1181,4 +1181,12 @@ describe('When', () => {
       expect(fn(2)).toEqual('boo!'); // success!
     });
   });
+
+  test('no type errors', () => {
+    const fn = jest.fn<Promise<boolean>, []>()
+    when(fn).mockResolvedValue(false)
+
+    const fn2 = jest.fn((): Promise<boolean> => Promise.resolve(false))
+    when(fn2).mockResolvedValue(false)
+  })
 });
