@@ -599,6 +599,108 @@ describe('When', () => {
       expect(await fn('foo')).toBeUndefined();
     });
 
+    // Tests for issue #109: Type inference with Promise return types
+    describe('issue #109: Promise type inference', () => {
+      it('mockResolvedValue should accept unwrapped Promise type with jest.fn', async () => {
+        // Create a mock that returns Promise<boolean>
+        const fn = jest.fn<Promise<boolean>, []>();
+
+        // Should accept boolean, not Promise<boolean>
+        when(fn).mockResolvedValue(true);
+
+        await expect(fn()).resolves.toBe(true);
+      });
+
+      it('mockResolvedValueOnce should accept unwrapped Promise type', async () => {
+        const fn = jest.fn<Promise<string>, [string]>();
+
+        when(fn).calledWith('test').mockResolvedValueOnce('first');
+        when(fn).calledWith('test').mockResolvedValue('default');
+
+        await expect(fn('test')).resolves.toBe('first');
+        await expect(fn('test')).resolves.toBe('default');
+      });
+
+      it('mockResolvedValue should work with calledWith and unwrapped types', async () => {
+        const fn = jest.fn<Promise<number>, [string]>();
+
+        when(fn).calledWith('foo').mockResolvedValue(42);
+        when(fn).calledWith('bar').mockResolvedValue(100);
+
+        await expect(fn('foo')).resolves.toBe(42);
+        await expect(fn('bar')).resolves.toBe(100);
+      });
+
+      it('mockRejectedValue should work with Promise return types', async () => {
+        const fn = jest.fn<Promise<string>, []>();
+        const error = new Error('test error');
+
+        when(fn).mockRejectedValue(error);
+
+        await expect(fn()).rejects.toThrow('test error');
+      });
+
+      it('mockRejectedValueOnce should work with Promise return types', async () => {
+        const fn = jest.fn<Promise<boolean>, []>();
+        const error = new Error('once error');
+
+        when(fn).calledWith().mockRejectedValueOnce(error);
+        when(fn).calledWith().mockResolvedValue(true);
+
+        await expect(fn()).rejects.toThrow('once error');
+        await expect(fn()).resolves.toBe(true);
+      });
+
+      it('defaultResolvedValue should accept unwrapped Promise type', async () => {
+        const fn = jest.fn<Promise<string>, [string]>();
+
+        when(fn)
+          .calledWith('special').mockResolvedValue('special value')
+          .defaultResolvedValue('default value');
+
+        await expect(fn('special')).resolves.toBe('special value');
+        await expect(fn('other')).resolves.toBe('default value');
+      });
+
+      it('should work with jest.spyOn and Promise return types', async () => {
+        const obj = {
+          asyncMethod: async (): Promise<boolean> => false
+        };
+
+        const spy = jest.spyOn(obj, 'asyncMethod');
+
+        when(spy).mockResolvedValue(true);
+
+        await expect(obj.asyncMethod()).resolves.toBe(true);
+      });
+
+      it('should handle complex object return types in Promises', async () => {
+        interface User {
+          id: number;
+          name: string;
+        }
+
+        const fn = jest.fn<Promise<User>, [number]>();
+
+        when(fn).calledWith(1).mockResolvedValue({ id: 1, name: 'Alice' });
+        when(fn).calledWith(2).mockResolvedValue({ id: 2, name: 'Bob' });
+
+        await expect(fn(1)).resolves.toEqual({ id: 1, name: 'Alice' });
+        await expect(fn(2)).resolves.toEqual({ id: 2, name: 'Bob' });
+      });
+
+      it('should work with chained calls mixing resolved and rejected values', async () => {
+        const fn = jest.fn<Promise<string>, [string]>();
+
+        when(fn)
+          .calledWith('success').mockResolvedValue('ok')
+          .calledWith('error').mockRejectedValue(new Error('failed'));
+
+        await expect(fn('success')).resolves.toBe('ok');
+        await expect(fn('error')).rejects.toThrow('failed');
+      });
+    });
+
     it('can be reset via `mockReset`', () => {
       const fn = jest.fn();
 

@@ -55,6 +55,12 @@ delete (global as any)[JEST_MATCHERS_OBJECT].matchers.__capture_equals__;
 type Matcher = any;
 
 /**
+ * Utility type to unwrap a Promise type
+ * @internal
+ */
+type Unpromisify<T> = T extends Promise<infer U> ? U : T;
+
+/**
  * A function that can be used as a matcher for jest-when
  */
 type FunctionMatcher = Function & { 
@@ -125,11 +131,11 @@ interface MockFunctions<TReturn> {
    * ```typescript
    * const fn = jest.fn();
    * when(fn).calledWith('foo').mockResolvedValue('async success');
-   * 
+   *
    * await fn('foo'); // Returns: Promise that resolves to "async success"
    * ```
    */
-  mockResolvedValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
+  mockResolvedValue: (returnValue: Unpromisify<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
   
   /**
    * Set a resolved Promise value for the mock when called with the specified arguments (one-time only)
@@ -139,12 +145,12 @@ interface MockFunctions<TReturn> {
    * ```typescript
    * const fn = jest.fn();
    * when(fn).calledWith('foo').mockResolvedValueOnce('first async');
-   * 
+   *
    * await fn('foo'); // Returns: Promise that resolves to "first async"
    * await fn('foo'); // Returns: Promise that resolves to undefined
    * ```
    */
-  mockResolvedValueOnce: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
+  mockResolvedValueOnce: (returnValue: Unpromisify<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
   
   /**
    * Set a rejected Promise value for the mock when called with the specified arguments
@@ -242,12 +248,12 @@ interface MockFunctions<TReturn> {
    * ```typescript
    * const fn = jest.fn();
    * when(fn).calledWith('foo').mockResolvedValue('special').defaultResolvedValue('default');
-   * 
+   *
    * await fn('foo'); // Returns: Promise that resolves to "special"
    * await fn('bar'); // Returns: Promise that resolves to "default"
    * ```
    */
-  defaultResolvedValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
+  defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
   
   /**
    * Set a default rejected Promise value for the mock (fallback when no specific matchers match)
@@ -395,25 +401,25 @@ export class WhenMock<TReturn = any> {
 
   /** Set a custom implementation for the mock (default behavior) */
   public mockImplementation: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+
   /** Set a return value for the mock (default behavior) */
   public mockReturnValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+
   /** Set a resolved Promise value for the mock (default behavior) */
-  public mockResolvedValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+  public mockResolvedValue: (returnValue: Unpromisify<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
+
   /** Set a rejected Promise value for the mock (default behavior) */
   public mockRejectedValue: (err: any) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+
   /** Set a default implementation for the mock (fallback behavior) */
   public defaultImplementation: (implementation: (...args: any[]) => TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+
   /** Set a default return value for the mock (fallback behavior) */
   public defaultReturnValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+
   /** Set a default resolved Promise value for the mock (fallback behavior) */
-  public defaultResolvedValue: (returnValue: TReturn) => WhenMock<TReturn> & MockFunctions<TReturn>;
-  
+  public defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => WhenMock<TReturn> & MockFunctions<TReturn>;
+
   /** Set a default rejected Promise value for the mock (fallback behavior) */
   public defaultRejectedValue: (err: any) => WhenMock<TReturn> & MockFunctions<TReturn>;
 
@@ -496,15 +502,15 @@ export class WhenMock<TReturn = any> {
     const mockFunctions = (matchers: Matcher[], expectCall: boolean): MockFunctions<TReturn> => ({
       mockReturnValue: (returnValue: TReturn) => _mockImplementation(matchers, expectCall)(() => returnValue),
       mockReturnValueOnce: (returnValue: TReturn) => _mockImplementation(matchers, expectCall, true)(() => returnValue),
-      mockResolvedValue: (returnValue: TReturn) => _mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
-      mockResolvedValueOnce: (returnValue: TReturn) => _mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
+      mockResolvedValue: (returnValue: Unpromisify<TReturn>) => _mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
+      mockResolvedValueOnce: (returnValue: Unpromisify<TReturn>) => _mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
       mockRejectedValue: (err: any) => _mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
       mockRejectedValueOnce: (err: any) => _mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
       mockImplementation: (implementation: (...args: any[]) => TReturn) => _mockImplementation(matchers, expectCall)(implementation),
       mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => _mockImplementation(matchers, expectCall, true)(implementation),
       defaultImplementation: (implementation: (...args: any[]) => TReturn) => this.defaultImplementation(implementation),
       defaultReturnValue: (returnValue: TReturn) => this.defaultReturnValue(returnValue),
-      defaultResolvedValue: (returnValue: TReturn) => this.defaultResolvedValue(returnValue),
+      defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => this.defaultResolvedValue(returnValue),
       defaultRejectedValue: (err: any) => this.defaultRejectedValue(err),
       calledWith: (...newMatchers: Matcher[]) => this.calledWith(...newMatchers),
       expectCalledWith: (...newMatchers: Matcher[]) => this.expectCalledWith(...newMatchers),
@@ -526,7 +532,7 @@ export class WhenMock<TReturn = any> {
       return _mockImplementation([NO_CALLED_WITH_YET], false)(mockImplementation);
     };
     this.defaultReturnValue = (returnValue: TReturn) => this.defaultImplementation(() => returnValue);
-    this.defaultResolvedValue = (returnValue: TReturn) => this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
+    this.defaultResolvedValue = (returnValue: Unpromisify<TReturn>) => this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
     this.defaultRejectedValue = (err: unknown) => this.defaultReturnValue(Promise.reject(err) as TReturn);
     this.mockImplementation = this.defaultImplementation;
     this.mockReturnValue = this.defaultReturnValue;
@@ -556,15 +562,15 @@ export class WhenMock<TReturn = any> {
     const mockFunctions = (matchers: Matcher[], expectCall: boolean): MockFunctions<TReturn> => ({
       mockReturnValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => returnValue),
       mockReturnValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => returnValue),
-      mockResolvedValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
-      mockResolvedValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
+      mockResolvedValue: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
+      mockResolvedValueOnce: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
       mockRejectedValue: (err: any) => this._mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
       mockRejectedValueOnce: (err: any) => this._mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
       mockImplementation: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall)(implementation),
       mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall, true)(implementation),
       defaultImplementation: (implementation: (...args: any[]) => TReturn) => this.defaultImplementation(implementation),
       defaultReturnValue: (returnValue: TReturn) => this.defaultReturnValue(returnValue),
-      defaultResolvedValue: (returnValue: TReturn) => this.defaultResolvedValue(returnValue),
+      defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => this.defaultResolvedValue(returnValue),
       defaultRejectedValue: (err: any) => this.defaultRejectedValue(err),
       calledWith: (...newMatchers: Matcher[]) => this.calledWith(...newMatchers),
       expectCalledWith: (...newMatchers: Matcher[]) => this.expectCalledWith(...newMatchers),
@@ -602,15 +608,15 @@ export class WhenMock<TReturn = any> {
     const mockFunctions = (matchers: Matcher[], expectCall: boolean): MockFunctions<TReturn> => ({
       mockReturnValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => returnValue),
       mockReturnValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => returnValue),
-      mockResolvedValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
-      mockResolvedValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
+      mockResolvedValue: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
+      mockResolvedValueOnce: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
       mockRejectedValue: (err: any) => this._mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
       mockRejectedValueOnce: (err: any) => this._mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
       mockImplementation: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall)(implementation),
       mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall, true)(implementation),
       defaultImplementation: (implementation: (...args: any[]) => TReturn) => this.defaultImplementation(implementation),
       defaultReturnValue: (returnValue: TReturn) => this.defaultReturnValue(returnValue),
-      defaultResolvedValue: (returnValue: TReturn) => this.defaultResolvedValue(returnValue),
+      defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => this.defaultResolvedValue(returnValue),
       defaultRejectedValue: (err: any) => this.defaultRejectedValue(err),
       calledWith: (...newMatchers: Matcher[]) => this.calledWith(...newMatchers),
       expectCalledWith: (...newMatchers: Matcher[]) => this.expectCalledWith(...newMatchers),
@@ -710,15 +716,15 @@ export class WhenMock<TReturn = any> {
       const mockFunctions = (matchers: Matcher[], expectCall: boolean): MockFunctions<TReturn> => ({
         mockReturnValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => returnValue),
         mockReturnValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => returnValue),
-        mockResolvedValue: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
-        mockResolvedValueOnce: (returnValue: TReturn) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
+        mockResolvedValue: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall)(() => Promise.resolve(returnValue)),
+        mockResolvedValueOnce: (returnValue: Unpromisify<TReturn>) => this._mockImplementation(matchers, expectCall, true)(() => Promise.resolve(returnValue)),
         mockRejectedValue: (err: any) => this._mockImplementation(matchers, expectCall)(() => Promise.reject(err)),
         mockRejectedValueOnce: (err: any) => this._mockImplementation(matchers, expectCall, true)(() => Promise.reject(err)),
         mockImplementation: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall)(implementation),
         mockImplementationOnce: (implementation: (...args: any[]) => TReturn) => this._mockImplementation(matchers, expectCall, true)(implementation),
         defaultImplementation: (implementation: (...args: any[]) => TReturn) => this.defaultImplementation(implementation),
         defaultReturnValue: (returnValue: TReturn) => this.defaultReturnValue(returnValue),
-        defaultResolvedValue: (returnValue: TReturn) => this.defaultResolvedValue(returnValue),
+        defaultResolvedValue: (returnValue: Unpromisify<TReturn>) => this.defaultResolvedValue(returnValue),
         defaultRejectedValue: (err: any) => this.defaultRejectedValue(err),
         calledWith: (...newMatchers: Matcher[]) => this.calledWith(...newMatchers),
         expectCalledWith: (...newMatchers: Matcher[]) => this.expectCalledWith(...newMatchers),
