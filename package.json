@@ -10,11 +10,13 @@
     "clean": "rm -rf dist",
     "prepare": "npm run clean && npm run build",
     "test": "jest",
+    "test:types": "tsd",
+    "test:all": "npm run test && npm run test:types",
     "lint": "eslint src/",
     "lint.fix": "eslint src/ --fix",
     "stryker": "stryker run",
     "release": "np",
-    "prepublishOnly": "npm run clean && npm run build && npm test"
+    "prepublishOnly": "npm run clean && npm run build && npm test:all"
   },
   "repository": {
     "type": "git",
@@ -24,7 +26,6 @@
     "Tim Kindberg <timkindberg@gmail.com>",
     "Jonas Holtkamp <jonas.holtkamp@senacor.com>"
   ],
-  "dependencies": {},
   "peerDependencies": {
     "jest": ">= 25"
   },
@@ -51,6 +52,7 @@
     "np": "^7.3.0",
     "pre-commit": "^1.2.2",
     "ts-jest": "^27.1.4",
+    "tsd": "^0.33.0",
     "typescript": "^5.9.2"
   },
   "jest": {
