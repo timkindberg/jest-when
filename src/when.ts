@@ -833,7 +833,7 @@ interface WhenFunction {
  * mock(4); // Returns: "even number"
  * ```
  */
-export const when: WhenFunction = <TReturn = any, TArgs extends any[] = any[]>(fn: MockableFunction<TReturn, TArgs>): WhenMock<TReturn> | FunctionMatcher | TReturn => {
+export const when: WhenFunction = (fn: any): any => {
   // This bit is for when you use `when` to make a WhenMock
   // when(fn) <-- This one
   //     .calledWith(when(numberIsGreaterThanZero)) <-- Not this one
