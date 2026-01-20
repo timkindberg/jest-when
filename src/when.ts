@@ -833,7 +833,7 @@ interface WhenFunction {
  * mock(4); // Returns: "even number"
  * ```
  */
-export const when: WhenFunction = (fn: any): any => {
+export const when = ((fn: any): any => {
   // This bit is for when you use `when` to make a WhenMock
   // when(fn) <-- This one
   //     .calledWith(when(numberIsGreaterThanZero)) <-- Not this one
@@ -860,7 +860,7 @@ export const when: WhenFunction = (fn: any): any => {
   }
 
   return fn;
-};
+}) as WhenFunction;
 
 /**
  * Create a function matcher that receives all arguments as an array
