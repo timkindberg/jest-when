@@ -1271,15 +1271,27 @@ describe('When', () => {
       expect(fn('bar')).toBe('hello')
     })
 
-    test('when() used as function matcher returns FunctionMatcher', () => {
+    test('when() used as function matcher works inside calledWith', () => {
       const fn = jest.fn<string, [number]>()
       const isEven = when((n: number) => n % 2 === 0)
 
-      // Function matcher should have _isFunctionMatcher property
-      expect(isEven._isFunctionMatcher).toBe(true)
+      // At runtime, when() on a non-mock function sets _isFunctionMatcher
+      expect((isEven as any)._isFunctionMatcher).toBe(true)
 
       when(fn).calledWith(isEven).mockReturnValue('even')
       expect(fn(4)).toBe('even')
+    })
+
+    test('when() works with functions cast from jest.fn()', () => {
+      const fn = jest.fn() as (x: number) => Promise<number>
+      when(fn).calledWith(1).mockResolvedValue(10)
+    })
+
+    test('when() works with jest.mocked-style plain function types', () => {
+      // Simulates the jest.mock('module') pattern where functions
+      // are jest mocks at runtime but typed as plain functions
+      const fn = jest.fn() as unknown as (file: string, mode: string) => Promise<string>
+      when(fn).calledWith('output.txt', 'w').mockResolvedValue('handle')
     })
 
     test('defaultReturnValue has proper types', () => {

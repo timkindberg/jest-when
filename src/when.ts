@@ -594,9 +594,12 @@ export function when<TReturn, TArgs extends any[]>(fn: jest.Mock<TReturn, TArgs>
  */
 export function when<TReturn, TArgs extends any[]>(fn: jest.SpyInstance<TReturn, TArgs>): WhenMock<TReturn>;
 /**
- * Create a function matcher for use with calledWith
+ * Create a WhenMock for a function (e.g. from jest.mock() or jest-mock-extended).
+ * Also used to create function matchers for use inside calledWith — at runtime
+ * the function is returned with _isFunctionMatcher set, but the return type is
+ * WhenMock for compatibility with the common jest.mock() pattern.
  */
-export function when<TFunc extends (...args: any[]) => any>(fn: TFunc): FunctionMatcher<TFunc>;
+export function when<TReturn>(fn: (...args: any[]) => TReturn): WhenMock<TReturn>;
 export function when(fn: any): any {
   // This bit is for when you use `when` to make a WhenMock
   // when(fn) <-- This one
