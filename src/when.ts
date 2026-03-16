@@ -56,7 +56,7 @@ type Matcher = any;
 /**
  * A function that can be used as a matcher for jest-when
  */
-type FunctionMatcher = Function & { 
+type FunctionMatcher<TFunc extends (...args: any[]) => any> = TFunc & { 
   _isFunctionMatcher?: boolean; 
   _isAllArgsFunctionMatcher?: boolean 
 };
@@ -112,12 +112,13 @@ const checkArgumentMatchers = (expectCall: boolean, args: any[]) => (match: bool
 };
 
 /**
- * The main WhenMock class that provides jest-when functionality
+ * The main WhenMock class that provides jest-when functionality. Not used directly by users.
+ * Users should use the `when()` function to create WhenMock instances.
  * 
  * @example
  * ```typescript
  * const mock = jest.fn();
- * const whenMock = when(mock);
+ * const whenMock = when(mock); // This line creates a WhenMock instance
  * 
  * whenMock
  *   .calledWith('hello')
@@ -156,14 +157,6 @@ export class WhenMock<TReturn = any> {
   /** @internal Whether to only call the mock once */
   private _once: boolean = false;
 
-  /** @internal Create a "once" version of a function */
-  private _onceOf = (fn: (...args: any[]) => any) => {
-    return (...args: any[]) => {
-      this._once = true;
-      return fn(...args);
-    }
-  }
-  
   /** @internal The default implementation when no matchers are specified */
   private _defaultImplementation: any;
 
@@ -259,7 +252,7 @@ export class WhenMock<TReturn = any> {
    * await fn('bar'); // Returns: Promise that resolves to "default"
    * ```
    */
-  defaultResolvedValue = (returnValue: TReturn) => {
+  defaultResolvedValue = (returnValue: Awaited<TReturn>) => {
     this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
     return this;
   }
@@ -294,7 +287,6 @@ export class WhenMock<TReturn = any> {
    * ```
    */
   mockReturnValue = (returnValue: TReturn) => {
-    console.log('mockReturnValue', this.__noCalledWithYet);
     if (this.__noCalledWithYet) {
       this.defaultReturnValue(returnValue);
     } else {
@@ -315,7 +307,10 @@ export class WhenMock<TReturn = any> {
    * fn('foo'); // Returns: "default"
    * ```
    */
-  mockReturnValueOnce = this._onceOf(this.mockReturnValue)
+  mockReturnValueOnce = (returnValue: TReturn) => {
+    this._once = true;
+    return this.mockReturnValue(returnValue);
+  }
 
   /**
    * Set a resolved Promise value for the mock when called with the specified arguments
@@ -350,7 +345,10 @@ export class WhenMock<TReturn = any> {
    * await fn('foo'); // Returns: Promise that resolves to undefined
    * ```
    */
-  mockResolvedValueOnce = this._onceOf(this.mockResolvedValue)
+  mockResolvedValueOnce = (returnValue: Awaited<TReturn>) => {
+    this._once = true;
+    return this.mockResolvedValue(returnValue);
+  }
 
   /**
    * Set a rejected Promise value for the mock when called with the specified arguments
@@ -385,7 +383,10 @@ export class WhenMock<TReturn = any> {
    * await fn('foo'); // Returns: Promise that resolves to undefined
    * ```
    */
-  mockRejectedValueOnce = this._onceOf(this.mockRejectedValue)
+  mockRejectedValueOnce = (err: unknown) => {
+    this._once = true;
+    return this.mockRejectedValue(err);
+  }
 
   /**
    * Set a custom implementation for the mock when called with the specified arguments
@@ -420,7 +421,10 @@ export class WhenMock<TReturn = any> {
    * fn('foo'); // Returns: undefined
    * ```
    */
-  mockImplementationOnce = this._onceOf(this.mockImplementation)
+  mockImplementationOnce = (implementation: (...args: any[]) => TReturn) => {
+    this._once = true;
+    return this.mockImplementation(implementation);
+  }
 
   /**
    * Reset all when mocks for this function
@@ -496,6 +500,7 @@ export class WhenMock<TReturn = any> {
       });
 
     this.nextCallMockId++;
+    this._once = false;
 
     const instance = this;
     this.fn.mockImplementation(function (this: any, ...args: any[]) {
@@ -546,72 +551,23 @@ export class WhenMock<TReturn = any> {
  * @template TArgs The argument types of the function
  */
 type MockableFunction<TReturn = any, TArgs extends any[] = any[]> = 
-  | jest.Mock<TReturn, TArgs> 
-  | jest.SpyInstance<TReturn, TArgs> 
-  | ((...args: TArgs) => TReturn);
+  | jest.Mock<TReturn, TArgs>
+  | jest.SpyInstance<TReturn, TArgs>
 
-// Type guard to check if a function is a Jest mock
 /**
  * Type guard to check if a function is a Jest mock or spy
  * @param fn The function to check
  * @returns True if the function is a Jest mock or spy
  * @internal
  */
-function isJestMock(fn: unknown): fn is jest.Mock | jest.SpyInstance {
+function isJestMock(fn: unknown): fn is MockableFunction {
   return fn != null && typeof fn === 'function' && '_isMockFunction' in fn && (fn as any)._isMockFunction;
 }
 
 /**
- * The main when function interface with overloads for different use cases
- */
-interface WhenFunction {
-  /**
-   * Create a WhenMock for a Jest mock or spy function
-   * @template TReturn The return type of the mocked function
-   * @template TArgs The argument types of the mocked function
-   * @param fn The Jest mock or spy function to wrap
-   * @returns A WhenMock instance for configuring mock behavior
-   */
-  <TReturn = any, TArgs extends any[] = any[]>(fn: MockableFunction<TReturn, TArgs>): WhenMock<TReturn>;
-  
-  /**
-   * Create a function matcher for use with when.calledWith()
-   * @template TFunc The function type to create a matcher for
-   * @param fn The function to use as a matcher
-   * @returns The function with matcher properties
-   */
-  <TFunc extends (...args: any[]) => any>(fn: TFunc): TFunc & FunctionMatcher;
-  
-  /**
-   * Pass through any other value unchanged
-   * @template T The type of the value
-   * @param fn The value to pass through
-   * @returns The value unchanged
-   */
-  <T>(fn: T): T;
-  
-  /**
-   * Create a function matcher that receives all arguments as an array
-   * @template TFunc The function type to create a matcher for
-   * @param fn The function that receives all arguments as an array
-   * @returns The function with all-args matcher properties
-   */
-  allArgs: <TFunc extends (...args: any[]) => any>(fn: TFunc) => TFunc & FunctionMatcher;
-  
-  /**
-   * Reset all when mocks across all functions
-   */
-  resetAllWhenMocks: () => void;
-  
-  /**
-   * Verify that all when mocks have been called
-   * @throws Error if any when mocks were not called
-   */
-  verifyAllWhenMocksCalled: () => void;
-}
-
-/**
- * The main jest-when function for creating mocks and function matchers
+ * The main jest-when function for creating mocks
+ * 
+ * Can also be used to create function matchers (see below)
  * 
  * @example
  * ```typescript
@@ -619,14 +575,29 @@ interface WhenFunction {
  * const mock = jest.fn();
  * when(mock).calledWith('hello').mockReturnValue('world');
  * mock('hello'); // Returns: "world"
+ * ```
  * 
+ * @example
+ * ```typescript
  * // Create a function matcher
  * const isEven = when((n: number) => n % 2 === 0);
  * when(mock).calledWith(isEven).mockReturnValue('even number');
  * mock(4); // Returns: "even number"
  * ```
  */
-export const when: WhenFunction = <TReturn = any, TArgs extends any[] = any[]>(fn: MockableFunction<TReturn, TArgs>): WhenMock<TReturn> | FunctionMatcher | TReturn => {
+/**
+ * Create a WhenMock for a Jest mock function
+ */
+export function when<TReturn, TArgs extends any[]>(fn: jest.Mock<TReturn, TArgs>): WhenMock<TReturn>;
+/**
+ * Create a WhenMock for a Jest spy instance
+ */
+export function when<TReturn, TArgs extends any[]>(fn: jest.SpyInstance<TReturn, TArgs>): WhenMock<TReturn>;
+/**
+ * Create a function matcher for use with calledWith
+ */
+export function when<TFunc extends (...args: any[]) => any>(fn: TFunc): FunctionMatcher<TFunc>;
+export function when(fn: any): any {
   // This bit is for when you use `when` to make a WhenMock
   // when(fn) <-- This one
   //     .calledWith(when(numberIsGreaterThanZero)) <-- Not this one
@@ -650,13 +621,9 @@ export const when: WhenFunction = <TReturn = any, TArgs extends any[] = any[]>(f
   // This bit is for when you use `when` as a function matcher
   // when(fn) <-- Not this one
   //     .calledWith(when(numberIsGreaterThanZero)) <-- This one
-  if (typeof fn === 'function') {
-    (fn as FunctionMatcher)._isFunctionMatcher = true;
-    return fn as FunctionMatcher;
-  }
-
+  fn._isFunctionMatcher = true;
   return fn;
-};
+}
 
 /**
  * Create a function matcher that receives all arguments as an array
@@ -675,11 +642,11 @@ export const when: WhenFunction = <TReturn = any, TArgs extends any[] = any[]>(f
  * @param fn The function that receives all arguments as an array
  * @returns The function with all-args matcher properties
  */
-when.allArgs = <TFunc extends (...args: any[]) => any>(fn: TFunc): TFunc & FunctionMatcher => {
-  (fn as FunctionMatcher)._isFunctionMatcher = true;
-  (fn as FunctionMatcher)._isAllArgsFunctionMatcher = true;
-  return fn as TFunc & FunctionMatcher;
-};
+when.allArgs = function allArgs<TFunc extends (...args: any[]) => any>(fn: TFunc): FunctionMatcher<TFunc> {
+  (fn as FunctionMatcher<TFunc>)._isFunctionMatcher = true;
+  (fn as FunctionMatcher<TFunc>)._isAllArgsFunctionMatcher = true;
+  return fn as FunctionMatcher<TFunc>;
+}
 
 /**
  * Reset all when mocks across all functions, restoring their original implementations
@@ -753,9 +720,6 @@ export const verifyAllWhenMocksCalled = (): void => {
 
   assert.equal(`called mocks: ${calledMocks.length}`, `called mocks: ${allMocks.length}`, msg);
 };
-
-when.resetAllWhenMocks = resetAllWhenMocks;
-when.verifyAllWhenMocksCalled = verifyAllWhenMocksCalled;
 
 export default {
   when,
