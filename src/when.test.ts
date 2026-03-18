@@ -1313,18 +1313,24 @@ describe('When', () => {
     })
 
     test('when() works with jest-mock-extended mock<T>()', () => {
-      // jest-mock-extended is a popular mocking library.
-      // Type inference for mockReturnValue depends on jest-mock-extended and
-      // @types/jest version compatibility, so we only test runtime behavior here.
       const { mock } = require('jest-mock-extended') as typeof import('jest-mock-extended')
 
       interface UserService {
         getName(id: number): string
+        fetchData(id: number): Promise<number>
+        doSomething(): Promise<void>
       }
       const mockService = mock<UserService>()
 
-      when(mockService.getName).calledWith(1).mockReturnValue('Alice' as any)
+      // Should infer WhenMock<string>, not WhenMock<(id: number) => string>
+      when(mockService.getName).calledWith(1).mockReturnValue('Alice')
       expect(mockService.getName(1)).toBe('Alice')
+
+      // Should infer WhenMock<Promise<number>>, mockResolvedValue takes number
+      when(mockService.fetchData).calledWith(1).mockResolvedValue(42)
+
+      // Promise<void> — should allow omitting the argument
+      when(mockService.doSomething).mockResolvedValue()
     })
 
     test('chaining calledWith/mockReturnValue preserves types through the chain', () => {
