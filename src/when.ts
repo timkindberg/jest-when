@@ -586,12 +586,6 @@ function isJestMock(fn: unknown): fn is MockableFunction {
  * ```
  */
 /**
- * Create a WhenMock for a Jest mock where T is a function type (jest-mock-extended pattern).
- * jest-mock-extended's CalledWithMock<T> extends jest.Mock<T> where T is the whole
- * function type, so we extract ReturnType<T> to get the actual return type.
- */
-export function when<TFunc extends (...args: any[]) => any>(fn: jest.Mock<TFunc>): WhenMock<ReturnType<TFunc>>;
-/**
  * Create a WhenMock for a Jest mock function
  */
 export function when<TReturn, TArgs extends any[]>(fn: jest.Mock<TReturn, TArgs>): WhenMock<TReturn>;

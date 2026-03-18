@@ -1221,15 +1221,9 @@ describe('When', () => {
         expectTypeOf(when(jest.mocked(fn))).toEqualTypeOf<WhenMock<string>>()
       })
 
-      test('jest-mock-extended mock<T>() → infers method return types', () => {
-        const { mock } = require('jest-mock-extended') as typeof import('jest-mock-extended')
-        interface Svc {
-          getName(id: number): string
-          fetchData(id: number): Promise<number>
-        }
-        const svc = mock<Svc>()
-        expectTypeOf(when(svc.getName)).toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(when(svc.fetchData)).toEqualTypeOf<WhenMock<Promise<number>>>()
+      test('mock that returns a function preserves the function return type', () => {
+        const fn = jest.fn<() => void, []>()
+        expectTypeOf(when(fn)).toEqualTypeOf<WhenMock<() => void>>()
       })
     })
 
