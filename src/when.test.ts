@@ -1331,6 +1331,14 @@ describe('When', () => {
 
       // Promise<void> — should allow omitting the argument
       when(mockService.doSomething).mockResolvedValue()
+
+      // Type-only assertions (never executed, just compiled)
+      if (false as boolean) {
+        // @ts-expect-error - number is not assignable to string
+        when(mockService.getName).calledWith(1).mockReturnValue(42)
+        // @ts-expect-error - string is not assignable to number
+        when(mockService.fetchData).calledWith(1).mockResolvedValue('wrong')
+      }
     })
 
     test('chaining calledWith/mockReturnValue preserves types through the chain', () => {
