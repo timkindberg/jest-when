@@ -1,4 +1,5 @@
 import { when, resetAllWhenMocks, verifyAllWhenMocksCalled, WhenMock } from './when';
+import { expectTypeOf } from 'expect-type';
 
 // Type for accessing internal WhenMock properties in tests
 type WhenMockWithInternals = jest.Mock & { __whenMock__: WhenMock<any> };
@@ -1183,207 +1184,151 @@ describe('When', () => {
   });
 
   describe('type inference', () => {
-    test('mockResolvedValue accepts Awaited<TReturn>', () => {
-      const fn = jest.fn<Promise<boolean>, []>()
-      when(fn).mockResolvedValue(false)
+    // These tests use expectTypeOf from 'expect-type' to assert EXACT types
+    // at compile time. They don't test runtime behavior (the 89 tests above
+    // already cover that). They catch regressions like WhenMock<any> or
+    // WhenMock<unknown> silently replacing the correct inferred type.
 
-      const fn2 = jest.fn((): Promise<boolean> => Promise.resolve(false))
-      when(fn2).mockResolvedValue(false)
+    describe('when() return type', () => {
+      test('typed jest.fn<T, Y>() → WhenMock<T>', () => {
+        expectTypeOf(when(jest.fn<string, [number]>())).toEqualTypeOf<WhenMock<string>>()
+      })
+
+      test('untyped jest.fn() → WhenMock<any>', () => {
+        expectTypeOf(when(jest.fn())).toEqualTypeOf<WhenMock<any>>()
+      })
+
+      test('jest.fn with implementation → infers return type', () => {
+        expectTypeOf(when(jest.fn((_x: number): string => ''))).toEqualTypeOf<WhenMock<string>>()
+      })
+
+      test('jest.fn<Promise<T>>() → WhenMock<Promise<T>>', () => {
+        expectTypeOf(when(jest.fn<Promise<boolean>, []>())).toEqualTypeOf<WhenMock<Promise<boolean>>>()
+      })
+
+      test('jest.spyOn → infers return type', () => {
+        class Svc { fetch(_id: number): string { return ''; } }
+        expectTypeOf(when(jest.spyOn(new Svc(), 'fetch'))).toEqualTypeOf<WhenMock<string>>()
+      })
+
+      test('plain function (cast from jest.fn) → WhenMock<ReturnType>', () => {
+        const fn = jest.fn() as (x: number) => Promise<number>
+        expectTypeOf(when(fn)).toEqualTypeOf<WhenMock<Promise<number>>>()
+      })
+
+      test('jest.mocked() → infers return type', () => {
+        const fn = jest.fn() as unknown as (x: number) => string
+        expectTypeOf(when(jest.mocked(fn))).toEqualTypeOf<WhenMock<string>>()
+      })
+
+      test('jest-mock-extended mock<T>() → infers method return types', () => {
+        const { mock } = require('jest-mock-extended') as typeof import('jest-mock-extended')
+        interface Svc {
+          getName(id: number): string
+          fetchData(id: number): Promise<number>
+        }
+        const svc = mock<Svc>()
+        expectTypeOf(when(svc.getName)).toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(when(svc.fetchData)).toEqualTypeOf<WhenMock<Promise<number>>>()
+      })
     })
 
-    test('when() infers return type from typed jest.fn()', () => {
-      const fn = jest.fn<string, [number]>()
-      const w = when(fn)
+    describe('WhenMock method parameter types', () => {
+      // Use a typed mock for all assertions below
+      const w = {} as WhenMock<string>
+      const wAsync = {} as WhenMock<Promise<number>>
+      const wVoid = {} as WhenMock<Promise<void>>
 
-      w.calledWith(1).mockReturnValue('hello')
-      // @ts-expect-error - number is not assignable to string
-      w.calledWith(2).mockReturnValue(42)
+      test('mockReturnValue takes TReturn', () => {
+        expectTypeOf(w.mockReturnValue).parameter(0).toEqualTypeOf<string>()
+      })
 
-      expect(fn(1)).toBe('hello')
+      test('mockReturnValueOnce takes TReturn', () => {
+        expectTypeOf(w.mockReturnValueOnce).parameter(0).toEqualTypeOf<string>()
+      })
+
+      test('mockResolvedValue takes Awaited<TReturn>', () => {
+        expectTypeOf(wAsync.mockResolvedValue).parameter(0).toEqualTypeOf<number>()
+      })
+
+      test('mockResolvedValueOnce takes Awaited<TReturn>', () => {
+        expectTypeOf(wAsync.mockResolvedValueOnce).parameter(0).toEqualTypeOf<number>()
+      })
+
+      test('mockResolvedValue on Promise<void> takes void (omittable)', () => {
+        expectTypeOf(wVoid.mockResolvedValue).parameter(0).toBeVoid()
+      })
+
+      test('mockRejectedValue takes unknown', () => {
+        expectTypeOf(w.mockRejectedValue).parameter(0).toEqualTypeOf<unknown>()
+      })
+
+      test('mockRejectedValueOnce takes unknown', () => {
+        expectTypeOf(w.mockRejectedValueOnce).parameter(0).toEqualTypeOf<unknown>()
+      })
+
+      test('mockImplementation takes (...args: any[]) => TReturn', () => {
+        expectTypeOf(w.mockImplementation).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
+      })
+
+      test('mockImplementationOnce takes (...args: any[]) => TReturn', () => {
+        expectTypeOf(w.mockImplementationOnce).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
+      })
+
+      test('defaultReturnValue takes TReturn', () => {
+        expectTypeOf(w.defaultReturnValue).parameter(0).toEqualTypeOf<string>()
+      })
+
+      test('defaultResolvedValue takes Awaited<TReturn>', () => {
+        expectTypeOf(wAsync.defaultResolvedValue).parameter(0).toEqualTypeOf<number>()
+      })
+
+      test('defaultRejectedValue takes unknown', () => {
+        expectTypeOf(w.defaultRejectedValue).parameter(0).toEqualTypeOf<unknown>()
+      })
+
+      test('defaultImplementation takes (...args: any[]) => TReturn', () => {
+        expectTypeOf(w.defaultImplementation).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
+      })
     })
 
-    test('when() infers return type from jest.fn with implementation', () => {
-      const fn = jest.fn((_x: number): string => 'default')
-      const w = when(fn)
-
-      w.calledWith(1).mockReturnValue('hello')
-      // @ts-expect-error - number is not assignable to string
-      w.calledWith(2).mockReturnValue(42)
-
-      expect(fn(1)).toBe('hello')
+    describe('chaining return types', () => {
+      test('all chainable methods return WhenMock<T>', () => {
+        // These are compile-time-only checks — the dummy WhenMock is never called
+        const w = {} as WhenMock<string>
+        expectTypeOf(w.calledWith).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.expectCalledWith).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockReturnValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockReturnValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockResolvedValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockResolvedValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockRejectedValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockRejectedValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockImplementation).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockImplementationOnce).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.defaultReturnValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.defaultResolvedValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.defaultRejectedValue).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.defaultImplementation).returns.toEqualTypeOf<WhenMock<string>>()
+        expectTypeOf(w.mockReset).returns.toEqualTypeOf<WhenMock<string>>()
+      })
     })
 
-    test('mockResolvedValue rejects wrong Awaited type', () => {
-      const fn = jest.fn<Promise<string>, []>()
-      when(fn).mockResolvedValue('hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).mockResolvedValue(42)
-    })
+    describe('runtime regressions caught by type conversion', () => {
+      test('chaining mockReturnValueOnce then mockReturnValue (once flag reset)', () => {
+        // Regression: the _once flag was not reset after use, so chaining
+        // mockReturnValueOnce().calledWith().mockReturnValue() made both "once"
+        const fn = jest.fn<string, [string]>()
+        when(fn)
+          .calledWith('foo')
+          .mockReturnValueOnce('first')
+          .calledWith('foo')
+          .mockReturnValue('default')
 
-    test('mockReturnValueOnce has proper types', () => {
-      const fn = jest.fn<string, [number]>()
-      when(fn).calledWith(1).mockReturnValueOnce('hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).calledWith(2).mockReturnValueOnce(42)
-
-      expect(fn(1)).toBe('hello')
-    })
-
-    test('mockResolvedValueOnce has proper types', () => {
-      const fn = jest.fn<Promise<string>, []>()
-      when(fn).mockResolvedValueOnce('hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).mockResolvedValueOnce(42)
-    })
-
-    test('mockImplementation has proper types', () => {
-      const fn = jest.fn<string, [number]>()
-      when(fn).calledWith(1).mockImplementation(() => 'hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).calledWith(2).mockImplementation(() => 42)
-    })
-
-    test('mockImplementationOnce has proper types', () => {
-      const fn = jest.fn<string, [number]>()
-      when(fn).calledWith(1).mockImplementationOnce(() => 'hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).calledWith(2).mockImplementationOnce(() => 42)
-    })
-
-    test('when() works with jest.spyOn', () => {
-      class Svc { fetch(_id: number): string { return ''; } }
-      const svc = new Svc()
-      const spy = jest.spyOn(svc, 'fetch')
-
-      when(spy).calledWith(1).mockReturnValue('found')
-      // @ts-expect-error - number is not assignable to string
-      when(spy).calledWith(2).mockReturnValue(42)
-
-      expect(svc.fetch(1)).toBe('found')
-    })
-
-    test('when() with untyped jest.fn() accepts anything (no type narrowing)', () => {
-      const fn = jest.fn()
-      // No @ts-expect-error here — untyped mocks accept any value
-      when(fn).calledWith('foo').mockReturnValue(42)
-      when(fn).calledWith('bar').mockReturnValue('hello')
-      expect(fn('foo')).toBe(42)
-      expect(fn('bar')).toBe('hello')
-    })
-
-    test('when() used as function matcher works inside calledWith', () => {
-      const fn = jest.fn<string, [number]>()
-      const isEven = when((n: number) => n % 2 === 0)
-
-      // At runtime, when() on a non-mock function sets _isFunctionMatcher
-      expect((isEven as any)._isFunctionMatcher).toBe(true)
-
-      when(fn).calledWith(isEven).mockReturnValue('even')
-      expect(fn(4)).toBe('even')
-    })
-
-    test('when() works with functions cast from jest.fn()', () => {
-      // Issue #109: casting jest.fn() to a plain function type should still
-      // return WhenMock with proper type inference, not FunctionMatcher
-      const fn = jest.fn() as (x: number) => Promise<number>
-      when(fn).calledWith(1).mockResolvedValue(10)
-      // @ts-expect-error - string is not assignable to number
-      when(fn).calledWith(1).mockResolvedValue('wrong')
-    })
-
-    test('when() works with jest.mocked-style plain function types', () => {
-      // Simulates the jest.mock('module') pattern where functions
-      // are jest mocks at runtime but typed as plain functions
-      const fn = jest.fn() as unknown as (file: string, mode: string) => Promise<string>
-      when(fn).calledWith('output.txt', 'w').mockResolvedValue('handle')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).calledWith('output.txt', 'w').mockResolvedValue(42)
-    })
-
-    test('when() works with jest.mocked() helper', () => {
-      // Simulates: import { someFn } from './module'; jest.mock('./module');
-      // The function is a mock at runtime but typed as the original function.
-      // jest.mocked() casts it to the proper mock type.
-      const originalFn = jest.fn() as unknown as (x: number) => string
-      const mockedFn = jest.mocked(originalFn)
-      when(mockedFn).calledWith(1).mockReturnValue('one')
-      // @ts-expect-error - number is not assignable to string
-      when(mockedFn).calledWith(2).mockReturnValue(42)
-      expect(mockedFn(1)).toBe('one')
-    })
-
-    test('when() works with jest-mock-extended mock<T>()', () => {
-      const { mock } = require('jest-mock-extended') as typeof import('jest-mock-extended')
-
-      interface UserService {
-        getName(id: number): string
-        fetchData(id: number): Promise<number>
-        doSomething(): Promise<void>
-      }
-      const mockService = mock<UserService>()
-
-      // Should infer WhenMock<string>, not WhenMock<(id: number) => string>
-      when(mockService.getName).calledWith(1).mockReturnValue('Alice')
-      expect(mockService.getName(1)).toBe('Alice')
-
-      // Should infer WhenMock<Promise<number>>, mockResolvedValue takes number
-      when(mockService.fetchData).calledWith(1).mockResolvedValue(42)
-
-      // Promise<void> — should allow omitting the argument
-      when(mockService.doSomething).mockResolvedValue()
-
-      // Type-only assertions (never executed, just compiled)
-      if (false as boolean) {
-        // @ts-expect-error - number is not assignable to string
-        when(mockService.getName).calledWith(1).mockReturnValue(42)
-        // @ts-expect-error - string is not assignable to number
-        when(mockService.fetchData).calledWith(1).mockResolvedValue('wrong')
-      }
-    })
-
-    test('chaining calledWith/mockReturnValue preserves types through the chain', () => {
-      const fn = jest.fn<string, [number]>()
-
-      when(fn)
-        .calledWith(1).mockReturnValue('one')
-        .calledWith(2).mockReturnValue('two')
-        // @ts-expect-error - number is not assignable to string
-        .calledWith(3).mockReturnValue(42)
-    })
-
-    test('mockResolvedValue on a non-Promise function compiles (common pattern)', () => {
-      // Users often use mockResolvedValue even when the fn isn't typed as
-      // returning a Promise. Awaited<string> = string, so this should work.
-      const fn = jest.fn<string, []>()
-      when(fn).mockResolvedValue('hello')
-    })
-
-    test('defaultReturnValue has proper types', () => {
-      const fn = jest.fn<string, [number]>()
-      when(fn).defaultReturnValue('hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).defaultReturnValue(42)
-    })
-
-    test('defaultResolvedValue has proper types', () => {
-      const fn = jest.fn<Promise<string>, []>()
-      when(fn).defaultResolvedValue('hello')
-      // @ts-expect-error - number is not assignable to string
-      when(fn).defaultResolvedValue(42)
-    })
-
-    test('chaining mockReturnValueOnce then mockReturnValue works correctly', () => {
-      const fn = jest.fn<string, [string]>()
-
-      when(fn)
-        .calledWith('foo')
-        .mockReturnValueOnce('first')
-        .calledWith('foo')
-        .mockReturnValue('default')
-
-      expect(fn('foo')).toBe('first')
-      expect(fn('foo')).toBe('default')
-      expect(fn('foo')).toBe('default')
+        expect(fn('foo')).toBe('first')
+        expect(fn('foo')).toBe('default')
+        expect(fn('foo')).toBe('default')
+      })
     })
   })
 });
