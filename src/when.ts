@@ -583,9 +583,35 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
  * @template TReturn The return type of the function
  * @template TArgs The argument types of the function
  */
-type MockableFunction<TReturn = any, TArgs extends any[] = any[]> = 
+type MockableFunction<TReturn = any, TArgs extends any[] = any[]> =
   | jest.Mock<TReturn, TArgs>
   | jest.SpyInstance<TReturn, TArgs>
+
+/**
+ * If a callable mock object already has its own `calledWith` helper (such as
+ * jest-mock-extended methods), that helper's return type can encode the real
+ * function signature more faithfully than the mock wrapper's own call
+ * signatures. Extract that inner function shape when present.
+ */
+type FunctionFromCalledWith<T> = T extends { calledWith: (...args: any[]) => infer TCalledWithReturn }
+  ? TCalledWithReturn extends (...args: any[]) => infer TInnerReturn
+    ? TInnerReturn extends (...args: any[]) => any
+      ? TInnerReturn
+      : never
+    : never
+  : never;
+
+type Whenified<T> = [FunctionFromCalledWith<T>] extends [never]
+  ? T extends (...args: infer TArgs) => infer TReturn
+    ? WhenMock<TReturn, TArgs>
+    : T extends jest.MockInstance<infer TReturn, infer TArgs>
+      ? WhenMock<TReturn, TArgs>
+      : T extends jest.SpyInstance<infer TReturn, infer TArgs>
+        ? WhenMock<TReturn, TArgs>
+        : never
+  : FunctionFromCalledWith<T> extends (...args: infer TArgs) => infer TReturn
+    ? WhenMock<TReturn, TArgs>
+    : never;
 
 /**
  * Type guard to check if a function is a Jest mock or spy
@@ -618,25 +644,7 @@ function isJestMock(fn: unknown): fn is MockableFunction {
  * mock(4); // Returns: "even number"
  * ```
  */
-/**
- * Create a WhenMock for a callable mock object that already exposes its own
- * `calledWith` helper (for example jest-mock-extended methods). This overload
- * extracts the real call signature rather than any helper-library wrapper type.
- */
-export function when<TFunc extends (...args: any[]) => any>(fn: TFunc & { calledWith: (...args: any[]) => any }): WhenMock<ReturnType<TFunc>, Parameters<TFunc>>;
-/**
- * Create a WhenMock for a callable function.
- *
- * This covers plain functions, typed casts like `jest.fn() as (...) => ...`,
- * and mocked module functions. Putting the callable overload first lets
- * TypeScript infer the argument tuple and return type from the call signature.
- */
-export function when<TReturn, TArgs extends any[]>(fn: (...args: TArgs) => TReturn): WhenMock<TReturn, TArgs>;
-/**
- * Create a WhenMock for a Jest spy when there is no usable call signature to
- * infer from directly.
- */
-export function when<TReturn, TArgs extends any[]>(fn: jest.SpyInstance<TReturn, TArgs>): WhenMock<TReturn, TArgs>;
+export function when<T>(fn: T): Whenified<T>;
 export function when(fn: any): any {
   // This bit is for when you use `when` to make a WhenMock
   // when(fn) <-- This one
