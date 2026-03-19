@@ -66,6 +66,19 @@ export type AllArgsMatcher<Y extends any[]> = ((args: Y, equals: jest.MatcherUti
   _isFunctionMatcher?: true;
 };
 
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+type IsUnknown<T> = IsAny<T> extends true ? false : [unknown] extends [T] ? ([T] extends [unknown] ? true : false) : false;
+type NormalizeReturn<T> = IsAny<T> extends true ? any : IsUnknown<T> extends true ? any : T;
+type NormalizeArgs<TArgs extends any[]> = number extends TArgs['length']
+  ? IsAny<TArgs[number]> extends true
+    ? any[]
+    : IsUnknown<TArgs[number]> extends true
+      ? any[]
+      : TArgs
+  : { [K in keyof TArgs]: IsAny<TArgs[K]> extends true ? any : IsUnknown<TArgs[K]> extends true ? any : TArgs[K] };
+type ResolvedValue<T> = IsAny<T> extends true ? any : IsUnknown<T> extends true ? unknown : T extends PromiseLike<infer U> ? U | T : T;
+type RejectedValue<T> = IsAny<T> extends true ? any : IsUnknown<T> extends true ? unknown : T extends PromiseLike<any> ? any : never;
+
 export type ArgumentOrMatcher<ArgTypes extends any[]> = {
   [Index in keyof ArgTypes]: ArgTypes[Index] | jest.AsymmetricMatcher | WhenMock<boolean, [ArgTypes[Index]]>;
 };
@@ -73,16 +86,16 @@ export type ArgumentOrMatcher<ArgTypes extends any[]> = {
 export interface WhenMockWithMatchers<T = any, Y extends any[] = any[]> {
   mockReturnValue(value: T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   mockReturnValueOnce(value: T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  mockResolvedValue(value: jest.ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  mockResolvedValueOnce(value: jest.ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  mockRejectedValue(value: jest.RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  mockRejectedValueOnce(value: jest.RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  mockResolvedValue(value: ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  mockResolvedValueOnce(value: ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  mockRejectedValue(value: RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  mockRejectedValueOnce(value: RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   mockImplementation(fn: (...args: Y) => T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   mockImplementationOnce(fn?: (...args: Y) => T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   defaultImplementation(fn: (...args: Y) => T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   defaultReturnValue(value: T): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  defaultResolvedValue(value: jest.ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
-  defaultRejectedValue(value: jest.RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  defaultResolvedValue(value: ResolvedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
+  defaultRejectedValue(value: RejectedValue<T>): WhenMockWithMatchers<T, Y> & WhenMock<T, Y>;
   mockReset(): WhenMock<T, Y>;
 }
 
@@ -285,7 +298,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('bar'); // Returns: Promise that resolves to "default"
    * ```
    */
-  defaultResolvedValue: (returnValue: jest.ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
+  defaultResolvedValue: (returnValue: ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
     this.defaultReturnValue(Promise.resolve(returnValue) as TReturn);
     return this;
   }
@@ -302,7 +315,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('bar'); // Returns: Promise that rejects with Error('default error')
    * ```
    */
-  defaultRejectedValue: (err: jest.RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
+  defaultRejectedValue: (err: RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
     this.defaultReturnValue(Promise.reject(err) as TReturn);
     return this;
   }
@@ -357,7 +370,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('foo'); // Returns: Promise that resolves to "async success"
    * ```
    */
-  mockResolvedValue: (returnValue: jest.ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
+  mockResolvedValue: (returnValue: ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
     if (this.__noCalledWithYet) {
       this.defaultResolvedValue(returnValue);
     } else {
@@ -378,7 +391,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('foo'); // Returns: Promise that resolves to undefined
    * ```
    */
-  mockResolvedValueOnce: (returnValue: jest.ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
+  mockResolvedValueOnce: (returnValue: ResolvedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (returnValue) => {
     this._once = true;
     return this.mockResolvedValue(returnValue);
   }
@@ -395,7 +408,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('foo'); // Returns: Promise that rejects with Error('async error')
    * ```
    */
-  mockRejectedValue: (err: jest.RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
+  mockRejectedValue: (err: RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
     if (this.__noCalledWithYet) {
       this.defaultRejectedValue(err);
     } else {
@@ -416,7 +429,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    * await fn('foo'); // Returns: Promise that resolves to undefined
    * ```
    */
-  mockRejectedValueOnce: (err: jest.RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
+  mockRejectedValueOnce: (err: RejectedValue<TReturn>) => WhenMockChain<TReturn, TArgs> = (err) => {
     this._once = true;
     return this.mockRejectedValue(err);
   }
@@ -588,28 +601,31 @@ type MockableFunction<TReturn = any, TArgs extends any[] = any[]> =
   | jest.SpyInstance<TReturn, TArgs>
 
 /**
- * If a callable mock object already has its own `calledWith` helper (such as
- * jest-mock-extended methods), that helper's return type can encode the real
- * function signature more faithfully than the mock wrapper's own call
- * signatures. Extract that inner function shape when present.
+ * Some function-like mock wrappers are callable both as the real function and
+ * as a helper-generated mock signature that returns the real function type.
+ *
+ * If the top-level callable appears to return a function type and the wrapper
+ * itself is assignable to that returned function type, prefer the inner
+ * function shape as the real API contract. This handles wrapper mocks without
+ * peeking through library-specific helper properties.
  */
-type FunctionFromCalledWith<T> = T extends { calledWith: (...args: any[]) => infer TCalledWithReturn }
-  ? TCalledWithReturn extends (...args: any[]) => infer TInnerReturn
-    ? TInnerReturn extends (...args: any[]) => any
-      ? TInnerReturn
+type InnerFunctionFromWrapper<T> = T extends (...args: any[]) => infer TMaybeInner
+  ? TMaybeInner extends (...args: any[]) => any
+    ? T extends TMaybeInner
+      ? TMaybeInner
       : never
     : never
   : never;
 
-type Whenified<T> = [FunctionFromCalledWith<T>] extends [never]
-  ? T extends (...args: infer TArgs) => infer TReturn
-    ? WhenMock<TReturn, TArgs>
-    : T extends jest.MockInstance<infer TReturn, infer TArgs>
-      ? WhenMock<TReturn, TArgs>
-      : T extends jest.SpyInstance<infer TReturn, infer TArgs>
+type Whenified<T> = [InnerFunctionFromWrapper<T>] extends [never]
+  ? T extends jest.MockInstance<infer TReturn, infer TArgs>
+    ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
+    : T extends jest.SpyInstance<infer TReturn, infer TArgs>
+      ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
+      : T extends (...args: infer TArgs) => infer TReturn
         ? WhenMock<TReturn, TArgs>
         : never
-  : FunctionFromCalledWith<T> extends (...args: infer TArgs) => infer TReturn
+  : InnerFunctionFromWrapper<T> extends (...args: infer TArgs) => infer TReturn
     ? WhenMock<TReturn, TArgs>
     : never;
 
@@ -644,6 +660,8 @@ function isJestMock(fn: unknown): fn is MockableFunction {
  * mock(4); // Returns: "even number"
  * ```
  */
+export function when<TReturn, TArgs extends any[]>(fn: jest.Mock<TReturn, TArgs>): WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>;
+export function when<TReturn, TArgs extends any[]>(fn: jest.SpyInstance<TReturn, TArgs>): WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>;
 export function when<T>(fn: T): Whenified<T>;
 export function when(fn: any): any {
   // This bit is for when you use `when` to make a WhenMock
