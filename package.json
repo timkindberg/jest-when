@@ -60,7 +60,8 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "src/**/*.ts",
-      "!src/**/*.test.ts"
+      "!src/**/*.test.ts",
+      "!src/**/*.type-test.ts"
     ],
     "coverageDirectory": "build/reports/coverage/",
     "coverageReporters": [

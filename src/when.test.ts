@@ -1,8 +1,7 @@
 import { when, resetAllWhenMocks, verifyAllWhenMocksCalled, WhenMock } from './when';
-import { expectTypeOf } from 'expect-type';
 
 // Type for accessing internal WhenMock properties in tests
-type WhenMockWithInternals = jest.Mock & { __whenMock__: WhenMock<any> };
+type WhenMockWithInternals = jest.Mock & { __whenMock__: WhenMock<any, any[]> };
 
 // Import FunctionMatcher type from when.ts
 type FunctionMatcher = Function & { _isFunctionMatcher?: boolean; _isAllArgsFunctionMatcher?: boolean };
@@ -1183,146 +1182,20 @@ describe('When', () => {
     });
   });
 
-  describe('type inference', () => {
-    // These tests use expectTypeOf from 'expect-type' to assert EXACT types
-    // at compile time. They don't test runtime behavior (the 89 tests above
-    // already cover that). They catch regressions like WhenMock<any> or
-    // WhenMock<unknown> silently replacing the correct inferred type.
+  describe('runtime regressions caught by type conversion', () => {
+    test('chaining mockReturnValueOnce then mockReturnValue (once flag reset)', () => {
+      // Regression: the _once flag was not reset after use, so chaining
+      // mockReturnValueOnce().calledWith().mockReturnValue() made both "once"
+      const fn = jest.fn<string, [string]>()
+      when(fn)
+        .calledWith('foo')
+        .mockReturnValueOnce('first')
+        .calledWith('foo')
+        .mockReturnValue('default')
 
-    describe('when() return type', () => {
-      test('typed jest.fn<T, Y>() → WhenMock<T>', () => {
-        expectTypeOf(when(jest.fn<string, [number]>())).toEqualTypeOf<WhenMock<string>>()
-      })
-
-      test('untyped jest.fn() → WhenMock<any>', () => {
-        expectTypeOf(when(jest.fn())).toEqualTypeOf<WhenMock<any>>()
-      })
-
-      test('jest.fn with implementation → infers return type', () => {
-        expectTypeOf(when(jest.fn((_x: number): string => ''))).toEqualTypeOf<WhenMock<string>>()
-      })
-
-      test('jest.fn<Promise<T>>() → WhenMock<Promise<T>>', () => {
-        expectTypeOf(when(jest.fn<Promise<boolean>, []>())).toEqualTypeOf<WhenMock<Promise<boolean>>>()
-      })
-
-      test('jest.spyOn → infers return type', () => {
-        class Svc { fetch(_id: number): string { return ''; } }
-        expectTypeOf(when(jest.spyOn(new Svc(), 'fetch'))).toEqualTypeOf<WhenMock<string>>()
-      })
-
-      test('plain function (cast from jest.fn) → WhenMock<ReturnType>', () => {
-        const fn = jest.fn() as (x: number) => Promise<number>
-        expectTypeOf(when(fn)).toEqualTypeOf<WhenMock<Promise<number>>>()
-      })
-
-      test('jest.mocked() → infers return type', () => {
-        const fn = jest.fn() as unknown as (x: number) => string
-        expectTypeOf(when(jest.mocked(fn))).toEqualTypeOf<WhenMock<string>>()
-      })
-
-      test('mock that returns a function preserves the function return type', () => {
-        const fn = jest.fn<() => void, []>()
-        expectTypeOf(when(fn)).toEqualTypeOf<WhenMock<() => void>>()
-      })
-    })
-
-    describe('WhenMock method parameter types', () => {
-      // Use a typed mock for all assertions below
-      const w = {} as WhenMock<string>
-      const wAsync = {} as WhenMock<Promise<number>>
-      const wVoid = {} as WhenMock<Promise<void>>
-
-      test('mockReturnValue takes TReturn', () => {
-        expectTypeOf(w.mockReturnValue).parameter(0).toEqualTypeOf<string>()
-      })
-
-      test('mockReturnValueOnce takes TReturn', () => {
-        expectTypeOf(w.mockReturnValueOnce).parameter(0).toEqualTypeOf<string>()
-      })
-
-      test('mockResolvedValue takes Awaited<TReturn>', () => {
-        expectTypeOf(wAsync.mockResolvedValue).parameter(0).toEqualTypeOf<number>()
-      })
-
-      test('mockResolvedValueOnce takes Awaited<TReturn>', () => {
-        expectTypeOf(wAsync.mockResolvedValueOnce).parameter(0).toEqualTypeOf<number>()
-      })
-
-      test('mockResolvedValue on Promise<void> takes void (omittable)', () => {
-        expectTypeOf(wVoid.mockResolvedValue).parameter(0).toBeVoid()
-      })
-
-      test('mockRejectedValue takes unknown', () => {
-        expectTypeOf(w.mockRejectedValue).parameter(0).toEqualTypeOf<unknown>()
-      })
-
-      test('mockRejectedValueOnce takes unknown', () => {
-        expectTypeOf(w.mockRejectedValueOnce).parameter(0).toEqualTypeOf<unknown>()
-      })
-
-      test('mockImplementation takes (...args: any[]) => TReturn', () => {
-        expectTypeOf(w.mockImplementation).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
-      })
-
-      test('mockImplementationOnce takes (...args: any[]) => TReturn', () => {
-        expectTypeOf(w.mockImplementationOnce).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
-      })
-
-      test('defaultReturnValue takes TReturn', () => {
-        expectTypeOf(w.defaultReturnValue).parameter(0).toEqualTypeOf<string>()
-      })
-
-      test('defaultResolvedValue takes Awaited<TReturn>', () => {
-        expectTypeOf(wAsync.defaultResolvedValue).parameter(0).toEqualTypeOf<number>()
-      })
-
-      test('defaultRejectedValue takes unknown', () => {
-        expectTypeOf(w.defaultRejectedValue).parameter(0).toEqualTypeOf<unknown>()
-      })
-
-      test('defaultImplementation takes (...args: any[]) => TReturn', () => {
-        expectTypeOf(w.defaultImplementation).parameter(0).toEqualTypeOf<(...args: any[]) => string>()
-      })
-    })
-
-    describe('chaining return types', () => {
-      test('all chainable methods return WhenMock<T>', () => {
-        // These are compile-time-only checks — the dummy WhenMock is never called
-        const w = {} as WhenMock<string>
-        expectTypeOf(w.calledWith).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.expectCalledWith).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockReturnValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockReturnValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockResolvedValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockResolvedValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockRejectedValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockRejectedValueOnce).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockImplementation).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockImplementationOnce).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.defaultReturnValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.defaultResolvedValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.defaultRejectedValue).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.defaultImplementation).returns.toEqualTypeOf<WhenMock<string>>()
-        expectTypeOf(w.mockReset).returns.toEqualTypeOf<WhenMock<string>>()
-      })
-    })
-
-    describe('runtime regressions caught by type conversion', () => {
-      test('chaining mockReturnValueOnce then mockReturnValue (once flag reset)', () => {
-        // Regression: the _once flag was not reset after use, so chaining
-        // mockReturnValueOnce().calledWith().mockReturnValue() made both "once"
-        const fn = jest.fn<string, [string]>()
-        when(fn)
-          .calledWith('foo')
-          .mockReturnValueOnce('first')
-          .calledWith('foo')
-          .mockReturnValue('default')
-
-        expect(fn('foo')).toBe('first')
-        expect(fn('foo')).toBe('default')
-        expect(fn('foo')).toBe('default')
-      })
+      expect(fn('foo')).toBe('first')
+      expect(fn('foo')).toBe('default')
+      expect(fn('foo')).toBe('default')
     })
   })
 });
