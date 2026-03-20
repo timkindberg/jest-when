@@ -600,33 +600,18 @@ type MockableFunction<TReturn = any, TArgs extends any[] = any[]> =
   | jest.Mock<TReturn, TArgs>
   | jest.SpyInstance<TReturn, TArgs>
 
-/**
- * Some function-like mock wrappers are callable both as the real function and
- * as a helper-generated mock signature that returns the real function type.
- *
- * If the top-level callable appears to return a function type and the wrapper
- * itself is assignable to that returned function type, prefer the inner
- * function shape as the real API contract. This handles wrapper mocks without
- * peeking through library-specific helper properties.
- */
-type InnerFunctionFromWrapper<T> = T extends (...args: any[]) => infer TMaybeInner
-  ? TMaybeInner extends (...args: any[]) => any
-    ? T extends TMaybeInner
-      ? TMaybeInner
-      : never
-    : never
+type ExtractFunction<T> = Exclude<T, undefined> extends (...args: any[]) => any ? Exclude<T, undefined> : never;
+
+type FunctionFromMockLike<T> = T extends { mockImplementation(fn?: infer TImplementation): any }
+  ? ExtractFunction<TImplementation>
   : never;
 
-type Whenified<T> = [InnerFunctionFromWrapper<T>] extends [never]
-  ? T extends jest.MockInstance<infer TReturn, infer TArgs>
+type Whenified<T> = [FunctionFromMockLike<T>] extends [never]
+  ? T extends (...args: infer TArgs) => infer TReturn
     ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
-    : T extends jest.SpyInstance<infer TReturn, infer TArgs>
-      ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
-      : T extends (...args: infer TArgs) => infer TReturn
-        ? WhenMock<TReturn, TArgs>
-        : never
-  : InnerFunctionFromWrapper<T> extends (...args: infer TArgs) => infer TReturn
-    ? WhenMock<TReturn, TArgs>
+    : never
+  : FunctionFromMockLike<T> extends (...args: infer TArgs) => infer TReturn
+    ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
     : never;
 
 /**
@@ -660,8 +645,6 @@ function isJestMock(fn: unknown): fn is MockableFunction {
  * mock(4); // Returns: "even number"
  * ```
  */
-export function when<TReturn, TArgs extends any[]>(fn: jest.Mock<TReturn, TArgs>): WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>;
-export function when<TReturn, TArgs extends any[]>(fn: jest.SpyInstance<TReturn, TArgs>): WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>;
 export function when<T>(fn: T): Whenified<T>;
 export function when(fn: any): any {
   // This bit is for when you use `when` to make a WhenMock

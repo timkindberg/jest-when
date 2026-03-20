@@ -6,4 +6,6 @@ reports
 /.idea
 /tmp
 /dist
+/compat/jest27/dist
+/compat/jest27/dist-test
 *.tsbuildinfo
