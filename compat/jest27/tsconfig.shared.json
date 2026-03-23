@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "paths": {
+      "expect-type": [
+        "./node_modules/expect-type"
+      ],
+      "jest-mock-extended": [
+        "./node_modules/jest-mock-extended"
+      ]
+    },
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "jest",
+      "node"
+    ]
+  }
+}
