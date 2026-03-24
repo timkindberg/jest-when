@@ -1,430 +1,431 @@
 # jest-when
 
-[![build status](https://travis-ci.org/timkindberg/jest-when.svg?branch=master)](https://travis-ci.org/timkindberg/jest-when)
-[![codecov](https://codecov.io/gh/timkindberg/jest-when/branch/master/graph/badge.svg)](https://codecov.io/gh/timkindberg/jest-when)
-[![GitHub license](https://img.shields.io/github/license/timkindberg/jest-when.svg)](https://github.com/timkindberg/jest-when/blob/master/LICENSE)
 [![npm](https://img.shields.io/npm/v/jest-when.svg)](https://www.npmjs.com/package/jest-when)
-[![ThoughtWorks Tech Radar 2020 | Adopt](https://img.shields.io/badge/Tech%20Radar-Adopt-b3005d)](https://www.thoughtworks.com/radar/languages-and-frameworks?blipid=201911030)
+[![license](https://img.shields.io/github/license/timkindberg/jest-when.svg)](https://github.com/timkindberg/jest-when/blob/master/LICENSE)
 
-Specify dynamic return values for specifically matched mocked function arguments. Flexible matchers. Feels like canonical jest syntax.
+Train Jest mocks by argument list.
 
-ThoughtWorks says:
-> jest-when is a lightweight JavaScript library that complements Jest by matching mock function call arguments. Jest is a great tool for testing the stack; jest-when allows you to expect specific arguments for mock functions which enables you to write more robust unit tests of modules with many dependencies. It's easy to use and provides great support for multiple matchers, which is why our teams have made jest-when their default choice for mocking in this space.
+`jest-when` lets you keep Jest's familiar mock API while returning different values for different calls, without stuffing branching logic into `mockImplementation`.
 
-### Introduction
-`jest-when` allows you to use a set of the original
-[Jest mock functions](https://facebook.github.io/jest/docs/en/mock-function-api) in order to train
-your mocks only based on parameters your mocked function is called with.
+## Table of contents
 
-#### An Example
+- [Why jest-when?](#why-jest-when)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Core concepts](#core-concepts)
+- [Matchers](#matchers)
+- [API reference](#api-reference)
+- [TypeScript in v4](#typescript-in-v4)
+- [Recipes](#recipes)
+- [Contributors](#contributors)
 
-So in jest if you want to mock a return value you would do:
+## Why jest-when?
 
-```javascript
+Plain Jest makes one thing easy:
+
+```ts
 const fn = jest.fn()
 fn.mockReturnValue('yay!')
 ```
 
-But that will return "yay!" regardless of what arguments are send to the `fn`. If you want to change the return value
-based on the arguments, you have to use `mockImplementation` and it can be a bit cumbersome.
+But that returns `'yay!'` no matter how `fn` is called.
 
-`jest-when` makes this easy and fun!
+If you want different behavior for different arguments, the usual alternative is a custom implementation with `if` statements inside your test. That works, but it gets noisy fast.
 
-```javascript
-when(fn).calledWith(1).mockReturnValue('yay!')
-```
+With `jest-when`:
 
-Now, the mock function `fn` will behave as follows&mdash;assuming no other trainings took place:
-* return `yay!` if called with `1` _as the only parameter_
-* return `undefined` if called with _any parameters other_ than `1`
-
-So the steps are:
-```javascript
-const fn = jest.fn()                    // 1) Start with any normal jest mock function
-when(fn)                                // 2) Wrap it with when()
-  .calledWith(/* any matchers here */)  // 3) Add your matchers with calledWith()
-  .mockReturnValue(/* some value */)    // 4) Then use any of the normal set of jest mock functions
-```
-
-The supported set of mock functions is:
-* `mockReturnValue`
-* `mockReturnValueOnce`
-* `mockResolvedValue`
-* `mockResolvedValueOnce`
-* `mockRejectedValue`
-* `mockRejectedValueOnce`
-* `mockImplementation`
-* `mockImplementationOnce`
-
-For extended usage see the examples below.
-
-### Features
-
-- Match literals: `1`, `true`, `"string"`, `/regex/`, `null`, etc
-- Match objects or arrays: `{ foo: true }`, `[1, 2, 3]`
-- Match [asymmetric matchers](https://jestjs.io/docs/en/expect#expectanything): expect.any(), expect.objectContaining(), expect.stringMatching(), etc
-- Setup multiple matched calls with differing returns
-- Chaining of mock trainings
-- Replacement of mock trainings
-- One-time trainings, removed after they are matched
-- Promises, resolved or rejected
-- Can also wrap jest.spyOn functions with when()
-- Supports function matchers
-- Setup a default behavior
-- Supports resetting mocks between tests
-- Supports verifying all whenMocks were called
-
-### Usage Examples
-
-#### Installation
-```bash
-npm i --save-dev jest-when
-```
-
-#### Basic usage:
-```javascript
+```ts
 import { when } from 'jest-when'
 
 const fn = jest.fn()
 when(fn).calledWith(1).mockReturnValue('yay!')
-
-expect(fn(1)).toEqual('yay!')
 ```
 
-#### Supports chaining of mock trainings:
-```javascript
+Now `fn(1)` returns `'yay!'`, and non-matching calls fall through to `undefined` unless you configure a default.
+
+A good default mental model is:
+
+- use `calledWith(...)` for the normal case
+- use Jest asymmetric matchers when literals are too specific
+- use `mockReturnValue*`, `mockResolvedValue*`, and `mockRejectedValue*` just like you already do in Jest
+- use `default*` methods when you want a fallback
+- use `expectCalledWith(...)` when unexpected calls should fail loudly
+- use `when.allArgs(...)` for advanced matching across the entire argument list
+
+## Installation
+
+```bash
+npm install --save-dev jest-when
+```
+
+### Compatibility
+
+- Jest `>= 27`
+- Works in both JavaScript and TypeScript projects
+- Named imports are recommended:
+
+```ts
+import { when, resetAllWhenMocks, verifyAllWhenMocksCalled } from 'jest-when'
+```
+
+If you use CommonJS, `require('jest-when')` works too.
+
+## Quick start
+
+```ts
+import { when } from 'jest-when'
+
+const fn = jest.fn()
+
+when(fn).calledWith(1).mockReturnValue('one')
+when(fn).calledWith(2).mockReturnValue('two')
+
+expect(fn(1)).toBe('one')
+expect(fn(2)).toBe('two')
+expect(fn(3)).toBeUndefined()
+```
+
+> [!IMPORTANT]
+> `calledWith(...)` uses exact arity matching.
+>
+> `when(fn).calledWith(1)` matches `fn(1)`.
+> It does **not** match `fn()`, `fn(1, 2)`, or `fn(1, undefined)`.
+
+Async values work the same way:
+
+```ts
+const fetchUser = jest.fn()
+
+when(fetchUser).calledWith(1).mockResolvedValue({ id: 1, role: 'admin' })
+when(fetchUser).calledWith(2).mockRejectedValue(new Error('not found'))
+
+await expect(fetchUser(1)).resolves.toEqual({ id: 1, role: 'admin' })
+await expect(fetchUser(2)).rejects.toThrow('not found')
+```
+
+## Core concepts
+
+### `when(fn)` wraps a Jest mock or spy
+
+Start with any normal Jest mock function or spy, then train it:
+
+```ts
+const fn = jest.fn()
+
+when(fn)
+  .calledWith('hello')
+  .mockReturnValue('world')
+```
+
+`when()` also supports `jest.spyOn(...)`:
+
+```ts
+const spy = jest.spyOn(api, 'fetchUser')
+
+when(spy).calledWith(123).mockResolvedValue({ id: 123 })
+```
+
+### `calledWith(...)` trains a specific call
+
+```ts
+when(fn).calledWith(1, true, 'foo').mockReturnValue('yay!')
+```
+
+That training matches only that exact argument list.
+
+### Trainings can be chained
+
+```ts
 when(fn)
   .calledWith(1).mockReturnValue('yay!')
   .calledWith(2).mockReturnValue('nay!')
 
-expect(fn(1)).toEqual('yay!')
-expect(fn(2)).toEqual('nay!')
+expect(fn(1)).toBe('yay!')
+expect(fn(2)).toBe('nay!')
 ```
-Thanks to [@fkloes](https://github.com/fkloes).
 
-```javascript
+### Later non-`Once` trainings replace earlier ones for the same matchers
+
+```ts
+when(fn).calledWith(1).mockReturnValue('old')
+when(fn).calledWith(1).mockReturnValue('new')
+
+expect(fn(1)).toBe('new')
+```
+
+### `*Once` trainings are queued and removed after use
+
+```ts
 when(fn)
   .calledWith(1)
-  .mockReturnValueOnce('yay!')
-  .mockReturnValue('nay!')
+  .mockReturnValueOnce('first')
+  .mockReturnValue('later')
 
-expect(fn(1)).toEqual('yay!')
-expect(fn(1)).toEqual('nay!')
-```
-Thanks to [@danielhusar](https://github.com/danielhusar).
-
-#### Supports replacement of mock trainings:
-```javascript
-when(fn).calledWith(1).mockReturnValue('yay!')
-expect(fn(1)).toEqual('yay!')
-
-when(fn).calledWith(1).mockReturnValue('nay!')
-expect(fn(1)).toEqual('nay!')
-```
-This replacement of the training only happens for mock functions _not_ ending in `*Once`.
-Trainings like `mockReturnValueOnce` are removed after a matching function call anyway.
-
-Thanks to [@fkloes](https://github.com/fkloes).
-
-#### Supports training for single calls
-```javascript
-when(fn).calledWith(1, true, 'foo').mockReturnValueOnce('yay!')
-when(fn).calledWith(1, true, 'foo').mockReturnValueOnce('nay!')
-
-expect(fn(1, true, 'foo')).toEqual('yay!')
-expect(fn(1, true, 'foo')).toEqual('nay!')
-expect(fn(1, true, 'foo')).toBeUndefined()
+expect(fn(1)).toBe('first')
+expect(fn(1)).toBe('later')
+expect(fn(1)).toBe('later')
 ```
 
-#### Supports Promises, both resolved and rejected
-```javascript
-when(fn).calledWith(1).mockResolvedValue('yay!')
-when(fn).calledWith(2).mockResolvedValueOnce('nay!')
+### Defaults are explicit in v3+ and still familiar in v4
 
-await expect(fn(1)).resolves.toEqual('yay!')
-await expect(fn(1)).resolves.toEqual('yay!')
+The clearest way to add a fallback is with a `default*` method:
 
-await expect(fn(2)).resolves.toEqual('nay!')
-expect(await fn(2)).toBeUndefined()
-
-
-when(fn).calledWith(3).mockRejectedValue(new Error('oh no!'))
-when(fn).calledWith(4).mockRejectedValueOnce(new Error('oh no, an error again!'))
-
-await expect(fn(3)).rejects.toThrow('oh no!')
-await expect(fn(3)).rejects.toThrow('oh no!')
-
-await expect(fn(4)).rejects.toThrow('oh no, an error again!')
-expect(await fn(4)).toBeUndefined()
-```
-
-#### Supports jest.spyOn:
-```javascript
-const theSpiedMethod = jest.spyOn(theInstance, 'theMethod');
-when(theSpiedMethod)
-  .calledWith(1)
-  .mockReturnValue('mock');
-const returnValue = theInstance.theMethod(1);
-expect(returnValue).toBe('mock');
-```
-
-#### Supports jest [asymmetric matchers](https://jestjs.io/docs/en/expect#expectanything):
-
-Use all the same asymmetric matchers available to the `toEqual()` assertion
-
-```javascript
-when(fn).calledWith(
-  expect.anything(),
-  expect.any(Number),
-  expect.arrayContaining(false)
-).mockReturnValue('yay!')
-
-const result = fn('whatever', 100, [true, false])
-expect(result).toEqual('yay!')
-```
-
-#### Supports function matchers:
-
-Just wrap any regular function (cannot be a jest mock or spy!) with `when`.
-
-The function will receive the arg and will be considered a match if the function returns true.
-
-It works with both calledWith and expectCalledWith.
-
-```javascript
-const allValuesTrue = when((arg) => Object.values(arg).every(Boolean))
-const numberDivisibleBy3 = when((arg) => arg % 3 === 0)
-
-when(fn)
-.calledWith(allValuesTrue, numberDivisibleBy3)
-.mockReturnValue('yay!')
-
-expect(fn({ foo: true, bar: true }, 9)).toEqual('yay!')
-expect(fn({ foo: true, bar: false }, 9)).toEqual(undefined)
-expect(fn({ foo: true, bar: false }, 13)).toEqual(undefined)
-```
-
-#### Supports compound declarations:
-```javascript
-when(fn).calledWith(1).mockReturnValue('no')
-when(fn).calledWith(2).mockReturnValue('way?')
-when(fn).calledWith(3).mockReturnValue('yes')
-when(fn).calledWith(4).mockReturnValue('way!')
-
-expect(fn(1)).toEqual('no')
-expect(fn(2)).toEqual('way?')
-expect(fn(3)).toEqual('yes')
-expect(fn(4)).toEqual('way!')
-expect(fn(5)).toEqual(undefined)
-```
-
-#### Supports matching or asserting against all of the arguments together using `when.allArgs`:
-
-Pass a single special matcher, `when.allArgs`, if you'd like to handle all of the arguments 
-with one function matcher. The function will receive all of the arguments as an array and you 
-are responsible for returning true if they are a match, or false if not. The function also is
-provided with the powerful `equals` utility from Jasmine.
-
-
-This allows some convenient patterns:
-- Less verbose for variable args where all need to be of a certain type or match (e.g. all numbers)
-- Can be useful for partial matching, because you can assert just the first arg for example and ignore the rest
-
-E.g. All args should be numbers:
-```javascript
-const areNumbers = (args, equals) => args.every(arg => equals(arg, expect.any(Number)))
-when(fn).calledWith(when.allArgs(areNumbers)).mockReturnValue('yay!')
-
-expect(fn(3, 6, 9)).toEqual('yay!')
-expect(fn(3, 666)).toEqual('yay!')
-expect(fn(-100, 2, 3.234234, 234, 90e3)).toEqual('yay!')
-expect(fn(123, 'not a number')).toBeUndefined()
-```
-
-E.g. Single arg match:
-```javascript
-const argAtIndex = (index, matcher) => when.allArgs((args, equals) => equals(args[index], matcher))
-
-when(fn).calledWith(argAtIndex(0, expect.any(Number))).mockReturnValue('yay!')
-
-expect(fn(3, 6, 9)).toEqual('yay!')
-expect(fn(3, 666)).toEqual('yay!')
-expect(fn(-100, 2, 3.234234, 234, 90e3)).toEqual('yay!')
-expect(fn(123, 'not a number')).toBeUndefined()
-```
-
-E.g. Partial match, only first defined matching args matter:
-```javascript
-const fn = jest.fn()
-const partialArgs = (...argsToMatch) => when.allArgs((args, equals) => equals(args, expect.arrayContaining(argsToMatch)))
-
-when(fn)
-  .calledWith(partialArgs(1, 2, 3))
-  .mockReturnValue('x')
-
-expect(fn(1, 2, 3)).toEqual('x')
-expect(fn(1, 2, 3, 4, 5, 6)).toEqual('x')
-expect(fn(1, 2)).toBeUndefined()
-expect(fn(1, 2, 4)).toBeUndefined()
-```
-
-#### Assert the args:
-
-Use `expectCalledWith` instead to run an assertion that the `fn` was called with the provided
-args. Your test will fail if the jest mock function is ever called without those exact
-`expectCalledWith` params.
-
-Disclaimer: This won't really work very well with compound declarations, because one of them will
-always fail, and throw an assertion error.
-```javascript
-when(fn).expectCalledWith(1).mockReturnValue('x')
-
-fn(2); // Will throw a helpful jest assertion error with args diff
-```
-
-#### Supports default behavior
-
-Use any of `defaultReturnValue`, `defaultResolvedValue`, `defaultRejectedValue`, `defaultImplementation`
-to set up a default behavior, which will serve as fallback if no matcher fits.
-
-```javascript
+```ts
 when(fn)
   .calledWith('foo').mockReturnValue('special')
-  .defaultReturnValue('default') // This line can be placed anywhere, doesn't have to be at the end
+  .defaultReturnValue('default')
 
-expect(fn('foo')).toEqual('special')
-expect(fn('bar')).toEqual('default')
+expect(fn('foo')).toBe('special')
+expect(fn('bar')).toBe('default')
 ```
 
-Or if you use any of `mockReturnValue`, `mockResolvedValue`, `mockRejectedValue`, `mockImplementation` directly on the object
-before using `calledWith` it will also behave as a default fallback.
+You can place the default anywhere in the chain.
 
-```javascript
-// Same as above example
+You can also set the fallback by calling a Jest-style method on the `when(fn)` chain before any `calledWith(...)`:
+
+```ts
 when(fn)
   .mockReturnValue('default')
   .calledWith('foo').mockReturnValue('special')
-
-expect(fn('foo')).toEqual('special')
-expect(fn('bar')).toEqual('default')
 ```
 
-One idea is to set up a default implementation that throws an error if an improper call is made to the mock.
+That behaves the same as `defaultReturnValue('default')`.
 
-```javascript
+## Matchers
+
+### Literals, objects, arrays, regexes, `null`, and friends
+
+```ts
+when(fn).calledWith(1).mockReturnValue('number')
+when(fn).calledWith({ role: 'admin' }).mockReturnValue('object')
+when(fn).calledWith([1, 2, 3]).mockReturnValue('array')
+when(fn).calledWith(/abc/).mockReturnValue('regex')
+when(fn).calledWith(null).mockReturnValue('null')
+```
+
+### Jest asymmetric matchers
+
+Anything that works well with Jest's equality matching also works well here:
+
+```ts
 when(fn)
-  .calledWith(correctArgs)
-  .mockReturnValue(expectedValue)
-  .defaultImplementation(unsupportedCallError)
-
-// A default implementation that fails your test
-function unsupportedCallError(...args) {
-  throw new Error(`Wrong args: ${JSON.stringify(args, null, 2)}`);
-}
+  .calledWith(
+    expect.anything(),
+    expect.any(Number),
+    expect.objectContaining({ enabled: true })
+  )
+  .mockReturnValue('matched')
 ```
 
-#### Supports custom mockImplementation
+### Function matchers
 
-You could use this to call callbacks passed to your mock fn or other custom functionality.
+Wrap a regular predicate function with `when(...)` to use it as an argument matcher.
 
-```javascript
-const cb = jest.fn()
+```ts
+const allValuesTrue = when((arg: Record<string, boolean>) => Object.values(arg).every(Boolean))
+const divisibleBy3 = when((arg: number) => arg % 3 === 0)
 
-when(fn).calledWith(cb).mockImplementation(callbackArg => callbackArg())
+when(fn)
+  .calledWith(allValuesTrue, divisibleBy3)
+  .mockReturnValue('yay!')
 
-fn(cb)
-
-expect(cb).toBeCalled()
+expect(fn({ a: true, b: true }, 9)).toBe('yay!')
+expect(fn({ a: true, b: false }, 9)).toBeUndefined()
 ```
 
-Thanks to [@idan-at](https://github.com/idan-at).
+### `when.allArgs(...)`
 
-#### Supports reseting mocks between tests
+Use `when.allArgs(...)` when matching one argument at a time is awkward and you want to evaluate the entire argument list at once.
 
-You could use this to prevent mocks from carrying state between tests or assertions.
+```ts
+const areNumberArgs = (args, equals) => args.every((arg) => equals(arg, expect.any(Number)));
 
-```javascript
-const { when, resetAllWhenMocks } = require('jest-when')
-const fn = jest.fn()
+when(fn).calledWith(when.allArgs(areNumberArgs)).mockReturnValue('all numbers')
 
-// Test 1
-when(fn).expectCalledWith(1).mockReturnValueOnce('x')
-expect(fn(1)).toEqual('x')
-
-resetAllWhenMocks()
-
-// Test 2
-when(fn).expectCalledWith(1).mockReturnValueOnce('z')
-expect(fn(1)).toEqual('z')
+expect(fn(3, 6, 9)).toBe('all numbers')
+expect(fn(3, 666)).toBe('all numbers')
+expect(fn(123, 'not a number')).toBeUndefined()
 ```
 
-Thanks to [@whoaa512](https://github.com/whoaa512).
+A handy partial-match pattern:
 
-#### Supports resetting individual mocks entirely or by matchers
+```ts
+const firstArgMatches = (matcher: unknown) =>
+  when.allArgs((args, equals) => equals(args[0], matcher))
 
-You can reset a single mocked function by calling `mockReset` on the mock function.
-
-```javascript
-const fn = jest.fn()
-
-when(fn).calledWith(1).mockReturnValue('yay!')
-when(fn).calledWith(2).mockReturnValue('boo!')
-fn.mockReset()
-
-expect(fn(1)).toBeUndefined() // no mocks
-expect(fn(2)).toBeUndefined() // no mocks
+when(fn).calledWith(firstArgMatches(expect.any(Number))).mockReturnValue('yay!')
 ```
 
-You can reset a single set of matchers by calling `mockReset` after `calledWith`. The matchers
-passed to calledWith will be used to remove any existing `calledWith` trainings with the same mathers.
+> [!IMPORTANT]
+> `when.allArgs(...)` must be the only matcher passed to `calledWith(...)` or `expectCalledWith(...)`.
 
-```javascript
-const fn = jest.fn()
+## API reference
 
+### Top-level exports
+
+| Export | What it does |
+| --- | --- |
+| `when(fn)` | Wraps a Jest mock or spy so you can train behavior by arguments. |
+| `when(matcherFn)` | Turns a regular predicate into a function matcher. |
+| `when.allArgs(fn)` | Creates a matcher that receives the entire argument list at once. |
+| `resetAllWhenMocks()` | Removes all `jest-when` trainings and restores original mock implementations. |
+| `verifyAllWhenMocksCalled()` | Asserts that every configured training was matched at least once. |
+| `WhenMock` | Exported for advanced usage and typing. Most users should not need to import it directly. |
+| default export | Available for compatibility. Named imports are the recommended API. |
+
+### Chain methods
+
+#### Match a call
+
+| Method | Purpose |
+| --- | --- |
+| `calledWith(...matchers)` | Train behavior for an exact argument list. |
+| `expectCalledWith(...matchers)` | Like `calledWith`, but throws an assertion error if the mock is called with different args. |
+
+#### Configure behavior for a matched call
+
+| Method | Purpose |
+| --- | --- |
+| `mockReturnValue(value)` | Return a value for matching calls. |
+| `mockReturnValueOnce(value)` | Return a value once for matching calls. |
+| `mockResolvedValue(value)` | Resolve a promise for matching calls. |
+| `mockResolvedValueOnce(value)` | Resolve a promise once for matching calls. |
+| `mockRejectedValue(error)` | Reject a promise for matching calls. |
+| `mockRejectedValueOnce(error)` | Reject a promise once for matching calls. |
+| `mockImplementation(fn)` | Use a custom implementation for matching calls. |
+| `mockImplementationOnce(fn?)` | Use a custom implementation once for matching calls. |
+
+#### Configure fallback behavior
+
+| Method | Purpose |
+| --- | --- |
+| `defaultReturnValue(value)` | Fallback return value when no training matches. |
+| `defaultResolvedValue(value)` | Fallback resolved promise when no training matches. |
+| `defaultRejectedValue(error)` | Fallback rejected promise when no training matches. |
+| `defaultImplementation(fn)` | Fallback implementation when no training matches. |
+
+#### Reset and verify
+
+| Method | Purpose |
+| --- | --- |
+| `mockReset()` | Removes trainings for the current `calledWith(...)` / `expectCalledWith(...)` matcher set. |
+| `resetWhenMocks()` | Removes all `jest-when` trainings for one mock or spy. |
+| `resetAllWhenMocks()` | Removes all `jest-when` trainings across the entire test run. |
+| `verifyAllWhenMocksCalled()` | Fails if any configured training was never matched. |
+
+### Reset behavior at a glance
+
+| Call | Effect |
+| --- | --- |
+| `fn.mockReset()` | Resets the underlying Jest mock and removes all `jest-when` trainings for that mock. |
+| `when(fn).calledWith(1, 2, 3).mockReset()` | Removes only the training(s) for that exact matcher set. |
+| `when(fn).resetWhenMocks()` | Removes all `jest-when` trainings for that one mock and restores its original implementation. |
+| `resetAllWhenMocks()` | Removes all `jest-when` trainings across all wrapped mocks. |
+
+### `expectCalledWith(...)`
+
+`expectCalledWith(...)` is intentionally stricter than `calledWith(...)`:
+
+```ts
+when(fn).expectCalledWith(1).mockReturnValue('x')
+
+fn(2) // throws a helpful Jest assertion error
+```
+
+It is best when you want the mock itself to fail loudly on unexpected calls.
+
+It is less pleasant with lots of compound declarations, because one unmatched branch will still fail the assertion.
+
+## TypeScript in v4
+
+v4 is rewritten in TypeScript and has much better inference, while keeping the same core API shape.
+
+Most of the time you should not need to import any `jest-when` types at all.
+
+```ts
+const getUser = jest.fn(async (id: number) => ({ id, name: 'original' }))
+
+when(getUser).calledWith(1).mockResolvedValue({ id: 1, name: 'Ada' })
+
+await expect(getUser(1)).resolves.toEqual({ id: 1, name: 'Ada' })
+```
+
+That inference also works well with common patterns such as:
+
+- `jest.fn(...)`
+- `jest.spyOn(...)`
+- `jest.mocked(...)`
+- mocked module functions
+- cast/mock-library patterns such as `jest-mock-extended`
+- optional arguments, variadic arguments, `void`, and async return types
+
+In other words: the docs can stay simple because the types should mostly just follow along.
+
+## Recipes
+
+### Fail loudly on unexpected calls
+
+A great default is one that throws:
+
+```ts
+when(fn)
+  .calledWith('expected').mockReturnValue('ok')
+  .defaultImplementation((...args) => {
+    throw new Error(`Unexpected args: ${JSON.stringify(args)}`)
+  })
+```
+
+### Call callbacks in a custom implementation
+
+```ts
+const callback = jest.fn()
+
+when(fn)
+  .calledWith(callback)
+  .mockImplementation((cb) => cb())
+
+fn(callback)
+
+expect(callback).toHaveBeenCalled()
+```
+
+### Reset one matcher set without touching the rest
+
+```ts
 when(fn).calledWith(1, 2, 3).mockReturnValue('yay!')
 when(fn).calledWith(2).mockReturnValue('boo!')
 
-// Reset only the 1, 2, 3 mock call
 when(fn).calledWith(1, 2, 3).mockReset()
 
-expect(fn(1, 2, 3)).toBeUndefined() // no mock for 1, 2, 3
-expect(fn(2)).toEqual('boo!') // success!
+expect(fn(1, 2, 3)).toBeUndefined()
+expect(fn(2)).toBe('boo!')
 ```
 
-#### Supports verifying that all mocked functions were called
+### Verify that every training was used
 
-Call `verifyAllWhenMocksCalled` after your test to assert that all mocks were used.
+```ts
+import { verifyAllWhenMocksCalled, when } from 'jest-when'
 
-```javascript
-const { when, verifyAllWhenMocksCalled } = require('jest-when')
 const fn = jest.fn()
 
-when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+when(fn).calledWith(1).mockReturnValue('x')
 
-expect(fn(1)).toEqual('x')
-
-verifyAllWhenMocksCalled() // passes
+fn(1)
+verifyAllWhenMocksCalled()
 ```
 
-```javascript
-const { when, verifyAllWhenMocksCalled } = require('jest-when')
-const fn = jest.fn()
+This checks that every configured training was matched at least once.
 
-when(fn).expectCalledWith(1).mockReturnValueOnce('x')
+## Contributors
 
-verifyAllWhenMocksCalled() // fails
-```
+Created by [@timkindberg](https://github.com/timkindberg).
 
-Thanks to [@roaclark](https://github.com/roaclark).
+Many thanks to the people who helped shape and steward the project, especially:
 
-
-### Contributors (in order of contribution)
-* [@timkindberg](https://github.com/timkindberg/) (original author)
-* [@jonasholtkamp](https://github.com/jonasholtkamp) (forked @ https://github.com/jonasholtkamp/jest-when-xt)
-> Many thanks to @jonasholtkamp. He forked this repo when I was inactive and stewarded several key features and bug fixes!
-* [@fkloes](https://github.com/fkloes)
-* [@danielhusar](https://github.com/danielhusar)
-* [@idan-at](https://github.com/idan-at)
-* [@whoaa512](https://github.com/whoaa512).
-* [@roaclark](https://github.com/roaclark)
-
+- [@jonasholtkamp](https://github.com/jonasholtkamp)
+- [@fkloes](https://github.com/fkloes)
+- [@danielhusar](https://github.com/danielhusar)
+- [@idan-at](https://github.com/idan-at)
+- [@whoaa512](https://github.com/whoaa512)
+- [@roaclark](https://github.com/roaclark)
+- [@tlevesque-ueat](https://github.com/tlevesque-ueat)

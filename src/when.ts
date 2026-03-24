@@ -7,10 +7,12 @@ import * as assert from 'assert';
 declare global {
   namespace jest {
     interface Mock {
+      /** @internal */
       __whenMock__?: WhenMock<any, any[]>;
     }
     
     interface SpyInstance {
+      /** @internal */
       __whenMock__?: WhenMock<any, any[]>;
     }
   }
@@ -176,10 +178,10 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
   /** @internal Next ID for call mocks */
   private nextCallMockId = 0;
   
-  /** The underlying Jest mock or spy function */
+  /** @internal The underlying Jest mock or spy function */
   public fn: jest.Mock<TReturn, TArgs> | jest.SpyInstance<TReturn, TArgs>;
   
-  /** Array of configured call mocks */
+  /** @internal Array of configured call mocks */
   public callMocks: CallMock[] = [];
   
   /** @internal Original mock implementation before jest-when modifications */

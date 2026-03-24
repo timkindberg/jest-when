@@ -14,6 +14,7 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "removeComments": false,
+    "stripInternal": true,
     "preserveConstEnums": true,
     "sourceMap": true,
     "types": ["jest", "node"]
