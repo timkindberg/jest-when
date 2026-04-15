@@ -382,3 +382,89 @@ type MockedObjectMethod<TFunc extends (...args: any[]) => any> = TFunc & {
   expectTypeOf(w.mockReturnValueOnce(1)).toEqualTypeOf<WhenMock<number, [string]> & WhenMockWithMatchers<number, [string]>>();
   expectTypeOf(w.mockReset()).toEqualTypeOf<WhenMock<number, [string]>>();
 }
+
+// Generic functions with conditional / mapped return types (issue #113).
+// Before the fix, `infer TArgs` + `infer TReturn` in Whenified kept the
+// underlying function's generic as a free type parameter, which left
+// conditional types like `T[K] extends X ? A : B` deferred and caused
+// assignment failures on `.mockReturnValue(...)`.
+{
+  type PrepareInputsArrayValue = (string | number)[];
+  type PrepareInputsValue = string | number;
+
+  // Exact reproduction from issue #113
+  const problemFunction = jest.fn() as <
+    T extends Record<string, PrepareInputsArrayValue | PrepareInputsValue>,
+  >(
+    fields?: T,
+  ) => { [K in keyof T]: T[K] extends PrepareInputsArrayValue ? string[] : string };
+
+  const input = { a: 1, b: [2, 3] };
+
+  when(problemFunction)
+    .expectCalledWith(input)
+    .mockReturnValue({ a: '1', b: ['2', '3'] });
+
+  when(problemFunction)
+    .calledWith(input)
+    .mockReturnValue({ a: '1', b: ['2', '3'] });
+}
+
+// Generic function with mapped return type
+{
+  const mapify = jest.fn() as <T extends object>(obj: T) => { [K in keyof T]: T[K] };
+
+  when(mapify).calledWith({ a: 1 }).mockReturnValue({ a: 1 });
+  when(mapify).expectCalledWith({ a: 1, b: 'two' }).mockReturnValue({ a: 1, b: 'two' });
+}
+
+// Generic function returning a promise of a conditional type
+{
+  const asyncProblem = jest.fn() as <
+    T extends Record<string, number | number[]>,
+  >(
+    fields: T,
+  ) => Promise<{ [K in keyof T]: T[K] extends number[] ? string[] : string }>;
+
+  when(asyncProblem)
+    .calledWith({ a: 1, b: [2, 3] })
+    .mockResolvedValue({ a: '1', b: ['2', '3'] });
+
+  when(asyncProblem)
+    .expectCalledWith({ a: 1, b: [2, 3] })
+    .mockResolvedValue({ a: '1', b: ['2', '3'] });
+}
+
+// Generic identity function — the generic should not leak through args either
+{
+  const identity = jest.fn() as <T>(x: T) => T;
+
+  when(identity).calledWith(42).mockReturnValue(42);
+  when(identity).calledWith('hello').mockReturnValue('hello');
+}
+
+// Generic function wrapped via jest.mocked
+{
+  const rawFn = ((() => {}) as unknown) as <
+    T extends Record<string, number | number[]>,
+  >(
+    fields: T,
+  ) => { [K in keyof T]: T[K] extends number[] ? string[] : string };
+
+  when(jest.mocked(rawFn))
+    .calledWith({ a: 1, b: [2, 3] })
+    .mockReturnValue({ a: '1', b: ['2', '3'] });
+}
+
+// mockImplementation on a generic function with conditional return type
+{
+  const problem = jest.fn() as <
+    T extends Record<string, number | number[]>,
+  >(
+    fields: T,
+  ) => { [K in keyof T]: T[K] extends number[] ? string[] : string };
+
+  when(problem)
+    .calledWith({ a: 1, b: [2, 3] })
+    .mockImplementation(() => ({ a: '1', b: ['2', '3'] }));
+}

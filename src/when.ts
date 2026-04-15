@@ -608,12 +608,27 @@ type FunctionFromMockLike<T> = T extends { mockImplementation(fn?: infer TImplem
   ? ExtractFunction<TImplementation>
   : never;
 
+// Infer `TArgs` inline (so it stays constrained to `any[]` for
+// `WhenMock<..., TArgs extends any[]>`) but resolve the return type through
+// the built-in `ReturnType` utility. When T is a generic function (e.g.
+// `<U>(x: U) => SomeConditional<U>`), inferring both positions at once keeps
+// the underlying generic as a free type parameter, which leaves conditional
+// / mapped return types (like `{ [K in keyof U]: U[K] extends X ? A : B }`)
+// deferred and prevents `mockReturnValue(...)` callers from supplying a valid
+// value. Running the return type through `ReturnType<...>` separately forces
+// TypeScript to resolve the underlying generic with its constraint, matching
+// how the function would be typed if called directly. See issue #113.
+type SafeReturnType<T> = T extends (...args: any) => any ? ReturnType<T> : never;
+
 type Whenified<T> = [FunctionFromMockLike<T>] extends [never]
-  ? T extends (...args: infer TArgs) => infer TReturn
-    ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
+  ? T extends (...args: infer TArgs) => any
+    ? WhenMock<NormalizeReturn<SafeReturnType<T>>, NormalizeArgs<TArgs>>
     : never
-  : FunctionFromMockLike<T> extends (...args: infer TArgs) => infer TReturn
-    ? WhenMock<NormalizeReturn<TReturn>, NormalizeArgs<TArgs>>
+  : FunctionFromMockLike<T> extends (...args: infer TArgs) => any
+    ? WhenMock<
+        NormalizeReturn<SafeReturnType<FunctionFromMockLike<T>>>,
+        NormalizeArgs<TArgs>
+      >
     : never;
 
 /**
