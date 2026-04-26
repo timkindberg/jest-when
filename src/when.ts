@@ -523,31 +523,38 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
   /** @internal The function to call when the mock is called */
   private _mockImplementation = (mockImplementation: (...args: any[]) => any) => {
     if (this.__noCalledWithYet) {
+      // Default implementations live in their own slot and are consulted as a
+      // fallback by the runtime when no `calledWith` matcher matches. We deliberately
+      // do NOT add a phantom entry to `callMocks` here: jest's deep-equals treats
+      // `[]`, `[undefined]`, `[undefined, undefined]`, ... as equal, so the
+      // filter below would silently drop legitimate bare `.calledWith()` /
+      // `.calledWith(undefined, ...)` registrations made before this default.
       this._defaultImplementation = mockImplementation;
-    }
-    // To enable dynamic replacement during a test:
-    // * call mocks with equal matchers are removed
-    // * `once` mocks are prioritized
-    this.callMocks = this.callMocks
-      .filter((callMock) => this._once || callMock.once || !equals(callMock.matchers, this._matchers))
-      .concat({ 
-          matchers: this._matchers, 
-          mockImplementation, 
-          expectCall: this._expectCall, 
-          once: this._once, 
-          called: false, 
-          id: this.nextCallMockId, 
-          callLines: getCallLines() 
-      })
-      .sort((a, b) => {
-        // Once mocks should appear before the rest
-        if (a.once !== b.once) {
-          return a.once ? -1 : 1;
-        }
-        return a.id - b.id;
-      });
+    } else {
+      // To enable dynamic replacement during a test:
+      // * call mocks with equal matchers are removed
+      // * `once` mocks are prioritized
+      this.callMocks = this.callMocks
+        .filter((callMock) => this._once || callMock.once || !equals(callMock.matchers, this._matchers))
+        .concat({
+            matchers: this._matchers,
+            mockImplementation,
+            expectCall: this._expectCall,
+            once: this._once,
+            called: false,
+            id: this.nextCallMockId,
+            callLines: getCallLines()
+        })
+        .sort((a, b) => {
+          // Once mocks should appear before the rest
+          if (a.once !== b.once) {
+            return a.once ? -1 : 1;
+          }
+          return a.id - b.id;
+        });
 
-    this.nextCallMockId++;
+      this.nextCallMockId++;
+    }
     this._once = false;
 
     const instance = this;
