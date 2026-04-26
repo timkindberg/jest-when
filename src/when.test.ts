@@ -1123,6 +1123,86 @@ describe('When', () => {
           await expect(fn(undefined, undefined)).resolves.toBe('two-undef');
           await expect(fn('x')).rejects.toThrow('default');
         });
+
+        it('preserves a prior bare .calledWith() when followed by a default-routed .mockImplementationOnce()', () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith().mockReturnValue('no-args');
+          when(fn).mockImplementationOnce(() => 'default');
+
+          expect(fn()).toBe('no-args');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior .calledWith(undefined) registration when followed by a default-routed .mockImplementationOnce()', () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith(undefined).mockReturnValue('one-undef');
+          when(fn).mockImplementationOnce(() => 'default');
+
+          expect(fn(undefined)).toBe('one-undef');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior bare .calledWith() when followed by a default-routed .mockReturnValueOnce()', () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith().mockReturnValue('no-args');
+          when(fn).mockReturnValueOnce('default');
+
+          expect(fn()).toBe('no-args');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior .calledWith(undefined) registration when followed by a default-routed .mockReturnValueOnce()', () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith(undefined).mockReturnValue('one-undef');
+          when(fn).mockReturnValueOnce('default');
+
+          expect(fn(undefined)).toBe('one-undef');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior bare .calledWith() when followed by a default-routed .mockResolvedValueOnce()', async () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith().mockResolvedValue('no-args');
+          when(fn).mockResolvedValueOnce('default');
+
+          await expect(fn()).resolves.toBe('no-args');
+          await expect(fn('x')).resolves.toBe('default');
+        });
+
+        it('preserves a prior .calledWith(undefined) registration when followed by a default-routed .mockResolvedValueOnce()', async () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith(undefined).mockResolvedValue('one-undef');
+          when(fn).mockResolvedValueOnce('default');
+
+          await expect(fn(undefined)).resolves.toBe('one-undef');
+          await expect(fn('x')).resolves.toBe('default');
+        });
+
+        it('preserves a prior bare .calledWith() when followed by a default-routed .mockRejectedValueOnce()', async () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith().mockResolvedValue('no-args');
+          when(fn).mockRejectedValueOnce(new Error('default'));
+
+          await expect(fn()).resolves.toBe('no-args');
+          await expect(fn('x')).rejects.toThrow('default');
+        });
+
+        it('preserves a prior .calledWith(undefined) registration when followed by a default-routed .mockRejectedValueOnce()', async () => {
+          const fn = jest.fn();
+
+          when(fn).calledWith(undefined).mockResolvedValue('one-undef');
+          when(fn).mockRejectedValueOnce(new Error('default'));
+
+          await expect(fn(undefined)).resolves.toBe('one-undef');
+          await expect(fn('x')).rejects.toThrow('default');
+        });
       });
 
       describe('legacy methods', () => {
