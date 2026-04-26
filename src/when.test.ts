@@ -831,6 +831,49 @@ describe('When', () => {
 
           expect(fn()).toEqual(2);
         });
+
+        it('preserves a prior bare .calledWith() when followed by .defaultImplementation()', () => {
+          const fn = jest.fn();
+
+          when(fn)
+            .calledWith().mockReturnValue('no-args')
+            .defaultImplementation(() => 'default');
+
+          expect(fn()).toBe('no-args');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior .calledWith(undefined) registration when followed by .defaultImplementation()', () => {
+          const fn = jest.fn();
+
+          when(fn)
+            .calledWith(undefined).mockReturnValue('one-undef')
+            .defaultImplementation(() => 'default');
+
+          expect(fn(undefined)).toBe('one-undef');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('preserves a prior .calledWith(undefined, undefined) registration when followed by .defaultImplementation()', () => {
+          const fn = jest.fn();
+
+          when(fn)
+            .calledWith(undefined, undefined).mockReturnValue('two-undef')
+            .defaultImplementation(() => 'default');
+
+          expect(fn(undefined, undefined)).toBe('two-undef');
+          expect(fn('x')).toBe('default');
+        });
+
+        it('still allows .defaultImplementation() to be replaced by a later .defaultImplementation()', () => {
+          const fn = jest.fn();
+
+          when(fn)
+            .defaultImplementation(() => 'first')
+            .defaultImplementation(() => 'second');
+
+          expect(fn('anything')).toBe('second');
+        });
       });
 
       describe('legacy methods', () => {

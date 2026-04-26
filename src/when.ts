@@ -29,6 +29,15 @@ let registry = new Set<jest.Mock | jest.SpyInstance>();
 const getCallLines = (): string => (new Error()).stack!.split('\n').slice(4).join('\n');
 
 /**
+ * @internal Sentinel matcher used by `defaultImplementation`. Module-private so it
+ * can never deep-equal any user-provided matcher, which keeps the dynamic-replacement
+ * filter in `_mockImplementation` from dropping legitimate bare `.calledWith()` /
+ * `.calledWith(undefined, ...)` registrations made before a default. Restored from
+ * the pre-TS-port JS implementation (commit cc6ca58).
+ */
+const NO_CALLED_WITH_YET = Symbol('NO_CALLED_WITH');
+
+/**
  * A hack to capture a reference to the `equals` jasmineUtil
  * @internal
  */
@@ -263,7 +272,7 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
    */
   defaultImplementation: (mockImplementation: (...args: TArgs) => TReturn) => WhenMockChain<TReturn, TArgs> = (mockImplementation) => {
     this.__noCalledWithYet = true;
-    this._matchers = [];
+    this._matchers = [NO_CALLED_WITH_YET];
     this._expectCall = false;
     // Set up an implementation with a special matcher that can never be matched because it uses a private symbol
     // Additionally the symbols existence can be checked to see if a calledWith was omitted.
@@ -530,14 +539,14 @@ export class WhenMock<TReturn = any, TArgs extends any[] = any[]> {
     // * `once` mocks are prioritized
     this.callMocks = this.callMocks
       .filter((callMock) => this._once || callMock.once || !equals(callMock.matchers, this._matchers))
-      .concat({ 
-          matchers: this._matchers, 
-          mockImplementation, 
-          expectCall: this._expectCall, 
-          once: this._once, 
-          called: false, 
-          id: this.nextCallMockId, 
-          callLines: getCallLines() 
+      .concat({
+          matchers: this._matchers,
+          mockImplementation,
+          expectCall: this._expectCall,
+          once: this._once,
+          called: false,
+          id: this.nextCallMockId,
+          callLines: getCallLines()
       })
       .sort((a, b) => {
         // Once mocks should appear before the rest
